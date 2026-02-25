@@ -1,11 +1,23 @@
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
 
-// Initialisation de Resend (la clé doit être dans .env.local)
-const resend = new Resend(process.env.RESEND_API_KEY);
+// ✅ Initialisation sécurisée : si la clé est manquante (build time), on ne crée pas l'instance
+// Cela évite l'erreur "Missing API key" qui bloque le déploiement.
+const resend = process.env.RESEND_API_KEY 
+  ? new Resend(process.env.RESEND_API_KEY) 
+  : null;
 
 export async function POST(request: Request) {
   try {
+    // ✅ Vérification de sécurité : on s'assure que Resend est bien configuré
+    if (!resend) {
+      console.error("RESEND_API_KEY est manquante dans les variables d'environnement.");
+      return NextResponse.json(
+        { message: "Service de messagerie non configuré" }, 
+        { status: 500 }
+      );
+    }
+
     const body = await request.json();
     const { name, email, subject, phone, message, date, guests } = body;
 

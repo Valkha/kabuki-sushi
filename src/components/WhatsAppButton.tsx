@@ -7,11 +7,10 @@ import { motion } from "framer-motion";
 export default function WhatsAppButton() {
   const { lang } = useTranslation();
 
-  // Remplacez par le vrai numéro de Kabuki (Format international sans le '+' ni les espaces)
-  // Ex: pour +41 79 123 45 67 -> "41791234567"
+  // Numéro de Kabuki (Format international)
   const phoneNumber = "41786041542"; 
 
-  // Le message pré-rempli selon la langue
+  // Message pré-rempli selon la langue
   const getDefaultMessage = () => {
     switch (lang) {
       case "en":
@@ -24,7 +23,6 @@ export default function WhatsAppButton() {
     }
   };
 
-  // Création du lien officiel WhatsApp
   const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(getDefaultMessage())}`;
 
   return (
@@ -35,19 +33,20 @@ export default function WhatsAppButton() {
       initial={{ scale: 0, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
       transition={{ delay: 1, type: "spring", stiffness: 200 }}
-      className="fixed bottom-6 right-6 md:bottom-10 md:right-10 z-50 group flex items-center gap-3"
+      // ✅ CHANGEMENT : "hidden md:flex" cache le bouton sur mobile et l'affiche dès 768px (tablette/PC)
+      className="hidden md:flex fixed bottom-10 right-10 z-50 group items-center gap-3"
       aria-label="Contactez-nous sur WhatsApp"
     >
       {/* Infobulle (visible uniquement au survol sur ordinateur) */}
-      <span className="hidden md:block absolute right-16 bg-white text-black text-xs font-bold py-2 px-4 rounded-xl shadow-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+      <span className="absolute right-16 bg-white text-black text-xs font-bold py-2 px-4 rounded-xl shadow-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none border border-neutral-200">
         {lang === "fr" ? "Commander via WhatsApp" : lang === "es" ? "Pedir por WhatsApp" : "Order via WhatsApp"}
       </span>
 
-      {/* Le Bouton en lui-même */}
+      {/* Le Bouton */}
       <div className="relative bg-[#25D366] text-white p-4 rounded-full shadow-2xl hover:bg-[#20bd5a] hover:scale-110 transition-all duration-300">
         <MessageCircle size={32} />
         
-        {/* Petit point de notification rouge pour attirer l'attention */}
+        {/* Point de notification */}
         <span className="absolute top-0 right-0 flex h-4 w-4">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
           <span className="relative inline-flex rounded-full h-4 w-4 bg-kabuki-red border-2 border-white"></span>

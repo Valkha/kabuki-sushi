@@ -5,7 +5,6 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer"; 
 import ScrollToTop from "@/components/ScrollToTop";
 import PageLoader from "@/components/PageLoader";
-import Link from "next/link";
 import { LanguageProvider } from "@/context/LanguageContext";
 import MobileActionBar from "@/components/MobileActionBar"; // <--- Nouveau composant pour la traduction
 

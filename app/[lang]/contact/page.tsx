@@ -5,14 +5,20 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   Phone, MapPin, Send, Loader2, CheckCircle, 
   Users, Calendar, Clock, ArrowRight 
-} from "lucide-react"; // ✅ 'Mail' a été retiré ici
+} from "lucide-react";
 import Reveal from "@/components/Reveal";
 import { useTranslation } from "@/context/LanguageContext";
 
 export default function ContactPage() {
   const { t, lang } = useTranslation();
   
-  // --- ÉTATS DU FORMULAIRE ---
+  // Variables pour les traductions des jours (pour correspondre au Footer)
+  const days = {
+    fr: { mon: "Lundi", tueFri: "Mardi - Vendredi", satSun: "Samedi - Dimanche", closed: "Fermé", midi: "Midi", soir: "Soir" },
+    en: { mon: "Monday", tueFri: "Tuesday - Friday", satSun: "Saturday - Sunday", closed: "Closed", midi: "Lunch", soir: "Dinner" },
+    es: { mon: "Lunes", tueFri: "Martes - Viernes", satSun: "Sábado - Domingo", closed: "Cerrado", midi: "Mediodía", soir: "Noche" }
+  }[lang as "fr" | "en" | "es"] || { mon: "Lundi", tueFri: "Mardi - Vendredi", satSun: "Samedi - Dimanche", closed: "Fermé", midi: "Midi", soir: "Soir" };
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSent, setIsSent] = useState(false);
   const [formData, setFormData] = useState({
@@ -25,13 +31,10 @@ export default function ContactPage() {
     message: ""
   });
 
-  // --- LOGIQUE D'ENVOI RÉELLE ---
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
-
     try {
-      // On appelle l'API située dans /app/api/contact/route.ts
       const response = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -40,19 +43,13 @@ export default function ContactPage() {
 
       if (response.ok) {
         setIsSent(true);
-        // Réinitialisation du formulaire après succès
         setFormData({ name: "", email: "", subject: "Général", phone: "", date: "", guests: "", message: "" });
-        
-        // Retour à l'état initial après 5 secondes
-        setTimeout(() => {
-          setIsSent(false);
-        }, 5000);
+        setTimeout(() => setIsSent(false), 5000);
       } else {
         const errorData = await response.json();
         alert(lang === "fr" ? "Erreur : " + errorData.message : "Error: " + errorData.message);
       }
     } catch { 
-      // ✅ Solution optimale : On retire la variable 'error' inutilisée ici (Ligne 54)
       alert(lang === "fr" ? "Une erreur réseau est survenue." : "A network error occurred.");
     } finally {
       setIsSubmitting(false);
@@ -62,8 +59,8 @@ export default function ContactPage() {
   return (
     <div className="bg-neutral-900 min-h-screen">
       
-      {/* --- HERO HEADER --- */}
-      <div className="bg-black text-white pt-40 pb-20 text-center relative overflow-hidden">
+      {/* --- HERO HEADER (Fix Marge Moche : pt-24 md:pt-32) --- */}
+      <div className="bg-black text-white pt-24 md:pt-32 pb-20 text-center relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('/pattern-kimono.png')] opacity-5 z-0"></div>
         <Reveal>
           <h1 className="text-4xl md:text-6xl font-display font-bold uppercase tracking-widest relative z-10">
@@ -76,7 +73,8 @@ export default function ContactPage() {
         </Reveal>
       </div>
 
-      <div className="container mx-auto px-6 py-16">
+      {/* --- CONTENU (Fix Marge Moche : px-4 md:px-8) --- */}
+      <div className="w-full max-w-7xl mx-auto px-4 md:px-8 py-16">
         <div className="grid lg:grid-cols-2 gap-16">
           
           {/* --- COLONNE GAUCHE : INFOS DE CONTACT --- */}
@@ -100,27 +98,46 @@ export default function ContactPage() {
               </div>
             </Reveal>
 
+            {/* HORAIRES MIS À JOUR */}
             <Reveal x={-30} delay={0.2}>
               <div className="flex gap-6 items-start group">
                 <div className="w-14 h-14 bg-neutral-800 rounded-2xl flex items-center justify-center text-kabuki-red border border-neutral-700 group-hover:bg-kabuki-red group-hover:text-white transition-all shadow-xl shrink-0">
                   <Clock size={28} />
                 </div>
                 <div>
-                  <h3 className="text-xl font-display font-bold text-white mb-2 uppercase tracking-wide">{t.contact.opening}</h3>
-                  <div className="space-y-1 text-sm text-gray-400">
-                    <div className="flex justify-between w-64 border-b border-neutral-800 pb-1">
-                        <span className="font-bold text-white">Lun - Sam</span>
-                        <span>11:00 - 14:30 / 18:00 - 22:30</span>
+                  <h3 className="text-xl font-display font-bold text-white mb-4 uppercase tracking-wide">{t.contact.opening}</h3>
+                  <div className="space-y-4 text-sm text-gray-400 max-w-xs">
+                    {/* MARDI - VENDREDI */}
+                    <div className="border-b border-neutral-800 pb-3">
+                      <div className="font-bold text-white mb-1 uppercase text-xs tracking-wider">{days.tueFri}</div>
+                      <div className="flex justify-between text-[11px]">
+                        <span>{days.midi}</span>
+                        <span className="text-white">11:20 - 14:00</span>
+                      </div>
+                      <div className="flex justify-between text-[11px]">
+                        <span>{days.soir}</span>
+                        <span className="text-white">18:00 - 22:30</span>
+                      </div>
                     </div>
-                    <div className="flex justify-between w-64 pt-1">
-                        <span className="font-bold text-white">Dimanche</span>
-                        <span className="text-kabuki-red italic font-bold">Fermé</span>
+                    {/* SAMEDI - DIMANCHE */}
+                    <div className="border-b border-neutral-800 pb-3">
+                      <div className="font-bold text-white mb-1 uppercase text-xs tracking-wider">{days.satSun}</div>
+                      <div className="flex justify-between text-[11px]">
+                        <span>{days.soir}</span>
+                        <span className="text-white">18:00 - 22:30</span>
+                      </div>
+                    </div>
+                    {/* LUNDI */}
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="font-bold text-white uppercase tracking-wider">{days.mon}</span>
+                      <span className="text-kabuki-red font-bold uppercase">{days.closed}</span>
                     </div>
                   </div>
                 </div>
               </div>
             </Reveal>
 
+            {/* CONTACT DIRECT MIS À JOUR */}
             <Reveal x={-30} delay={0.4}>
               <div className="flex gap-6 items-start group">
                 <div className="w-14 h-14 bg-neutral-800 rounded-2xl flex items-center justify-center text-kabuki-red border border-neutral-700 group-hover:bg-kabuki-red group-hover:text-white transition-all shadow-xl shrink-0">
@@ -128,8 +145,8 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <h3 className="text-xl font-display font-bold text-white mb-2 uppercase tracking-wide">Contact Direct</h3>
-                  <p className="text-gray-400 flex items-center gap-2">Tél : <a href="tel:+41220000000" className="text-white hover:text-kabuki-red font-bold transition">+41 22 000 00 00</a></p>
-                  <p className="text-gray-400 flex items-center gap-2">Email : <a href="mailto:info@kabukisushi.ch" className="text-white hover:text-kabuki-red font-bold transition">info@kabukisushi.ch</a></p>
+                  <p className="text-gray-400 flex items-center gap-2">Tél : <a href="tel:+41786041542" className="text-white hover:text-kabuki-red font-bold transition text-lg tracking-tighter">+41 78 604 15 42</a></p>
+                  <p className="text-gray-400 flex items-center gap-2">Email : <a href="mailto:info@kabuki-sushi.ch" className="text-white hover:text-kabuki-red font-bold transition">info@kabuki-sushi.ch</a></p>
                 </div>
               </div>
             </Reveal>
@@ -228,15 +245,16 @@ export default function ContactPage() {
         </div>
       </div>
 
-      <div className="w-full h-[450px] bg-neutral-800 border-t border-neutral-800 grayscale invert-[.1] opacity-60 hover:opacity-100 transition-all duration-1000">
+      {/* --- CARTE MAP --- */}
+      <div className="w-full h-[450px] bg-neutral-800 border-t border-neutral-800 relative">
         <iframe 
-          src="https://www.google.com/maps/embed?pb=..." 
+          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2761.7614046182!2d6.1415!3d46.196!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x478c652e90e4f203%3A0x673199c43d940602!2s1%20Boulevard%20de%20la%20Tour%2C%201205%20Gen%C3%A8ve!5e0!3m2!1sfr!2sch!4v1700000000000" 
           width="100%" 
           height="100%" 
           style={{border:0}} 
           allowFullScreen={true} 
           loading="lazy" 
-          className="filter grayscale contrast-125 brightness-75"
+          className="filter grayscale contrast-125 brightness-75 opacity-60 hover:opacity-100 transition-all duration-1000"
         ></iframe>
       </div>
 

@@ -91,11 +91,9 @@ export default function Home() {
           </Reveal>
 
           <div className="grid md:grid-cols-3 gap-8">
-            {/* ✅ 2. Utilisation de l'interface Testimonial */}
             {t.testimonials.items.map((avis: Testimonial, index: number) => (
               <Reveal key={index} delay={index * 0.2} y={30}>
                 <div className="bg-neutral-800/20 backdrop-blur-md p-8 rounded-2xl border border-neutral-700/30 hover:border-kabuki-red transition-colors duration-300 relative group h-full">
-                  {/* ✅ 3. Correction de l'erreur d'entité : &quot; au lieu de " */}
                   <div className="absolute top-6 right-8 text-6xl text-neutral-700 font-serif leading-none opacity-50 group-hover:text-kabuki-red transition-colors">&quot;</div>
                   
                   <div className="flex text-yellow-500 mb-6">
@@ -154,11 +152,12 @@ export default function Home() {
                 >
                   {t.hero.btnMenu}
                 </Link>
+                {/* ✅ Mise à jour du numéro : +41 78 604 15 42 */}
                 <a 
-                  href="tel:+41220000000" 
-                  className="bg-black/20 border border-white/30 text-white px-10 py-4 rounded-full font-bold uppercase tracking-widest hover:bg-black/40 transition"
+                  href="tel:+41786041542" 
+                  className="bg-black/20 border border-white/30 text-white px-10 py-4 rounded-full font-bold uppercase tracking-widest hover:bg-black/40 transition flex items-center justify-center gap-3"
                 >
-                  {t.cta.call} : +41 22 000 00 00
+                  {t.cta.call} : +41 78 604 15 42
                 </a>
             </div>
           </Reveal>

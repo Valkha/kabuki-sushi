@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Minus, Plus, Trash2, ShoppingBag, ArrowRight, ArrowLeft, Clock, Calendar, MessageSquare, Loader2, CheckCircle, ShieldCheck } from "lucide-react";
+import { X, Minus, Plus, Trash2, ShoppingBag, ArrowRight, ArrowLeft, Clock, Calendar, MessageSquare, Loader2, CheckCircle, ShieldCheck, MapPin } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import Image from "next/image";
 import { useTranslation } from "@/context/LanguageContext";
@@ -14,13 +14,13 @@ const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
 
 const cartTranslations = {
   fr: {
-    titleCart: "Mon Panier", titleCheckout: "Validation", titlePayment: "Paiement Sécurisé", emptyCart: "Votre panier est vide", items: "article", itemsPlural: "articles", clearCart: "Vider le panier", name: "Nom Complet *", namePlaceholder: "Jean Dupont", phone: "Téléphone *", date: "Date *", time: "Heure *", pickupMode: "Mode de retrait *", takeaway: "À Emporter", delivery: "Livraison", address: "Adresse *", addressPlaceholder: "Rue des Alpes 12", zip: "NPA *", floor: "Étage", floorPlaceholder: "Ex: 4", code: "Code", codePlaceholder: "Ex: A123", comments: "Instructions / Allergies", commentsPlaceholder: "Sans wasabi...", totalEstimated: "Total à payer", btnValidate: "Passer à la caisse", btnPay: "Payer la commande", minOrderError: "Minimum 25 CHF requis.", noTimeSlots: "Aucun horaire disponible.", today: "Aujourd'hui", tomorrow: "Demain", sending: "Génération...", processing: "Traitement...", paymentError: "Le paiement a échoué.", successTitle: "Paiement réussi !", successDesc: "Votre commande est validée.", btnClose: "Fermer", cancelPayment: "Annuler"
+    titleCart: "Mon Panier", titleCheckout: "Validation", titlePayment: "Paiement Sécurisé", emptyCart: "Votre panier est vide", items: "article", itemsPlural: "articles", clearCart: "Vider le panier", name: "Nom Complet *", namePlaceholder: "Jean Dupont", phone: "Téléphone *", date: "Date *", time: "Heure *", pickupMode: "Mode de retrait *", takeaway: "À Emporter", delivery: "Livraison", address: "Adresse *", addressPlaceholder: "Rue des Alpes 12", zip: "NPA *", floor: "Étage", floorPlaceholder: "Ex: 4", code: "Code", codePlaceholder: "Ex: A123", comments: "Instructions / Allergies", commentsPlaceholder: "Sans wasabi...", totalEstimated: "Total à payer", btnValidate: "Passer à la caisse", btnPay: "Payer la commande", minOrderError: "Minimum 25 CHF requis pour la livraison.", noTimeSlots: "Aucun horaire disponible.", today: "Aujourd'hui", tomorrow: "Demain", sending: "Génération...", processing: "Traitement...", paymentError: "Le paiement a échoué.", successTitle: "Paiement réussi !", successDesc: "Votre commande est validée.", btnClose: "Fermer", cancelPayment: "Annuler"
   },
   en: {
-    titleCart: "My Cart", titleCheckout: "Checkout", titlePayment: "Secure Payment", emptyCart: "Empty", items: "item", itemsPlural: "items", clearCart: "Clear", name: "Name *", namePlaceholder: "John Doe", phone: "Phone *", date: "Date *", time: "Time *", pickupMode: "Method *", takeaway: "Takeaway", delivery: "Delivery", address: "Address *", addressPlaceholder: "Street", zip: "ZIP *", floor: "Floor", floorPlaceholder: "Ex: 4", code: "Code", codePlaceholder: "Ex: A123", comments: "Instructions", commentsPlaceholder: "Allergies...", totalEstimated: "Total", btnValidate: "Checkout", btnPay: "Pay Now", minOrderError: "Min 25 CHF.", noTimeSlots: "No slots.", today: "Today", tomorrow: "Tomorrow", sending: "Sending...", processing: "Processing...", paymentError: "Failed.", successTitle: "Success!", successDesc: "Confirmed.", btnClose: "Close", cancelPayment: "Cancel"
+    titleCart: "My Cart", titleCheckout: "Checkout", titlePayment: "Secure Payment", emptyCart: "Empty", items: "item", itemsPlural: "items", clearCart: "Clear", name: "Name *", namePlaceholder: "John Doe", phone: "Phone *", date: "Date *", time: "Time *", pickupMode: "Method *", takeaway: "Takeaway", delivery: "Delivery", address: "Address *", addressPlaceholder: "Street", zip: "ZIP *", floor: "Floor", floorPlaceholder: "Ex: 4", code: "Code", codePlaceholder: "Ex: A123", comments: "Instructions", commentsPlaceholder: "Allergies...", totalEstimated: "Total", btnValidate: "Checkout", btnPay: "Pay Now", minOrderError: "Min 25 CHF for delivery.", noTimeSlots: "No slots.", today: "Today", tomorrow: "Tomorrow", sending: "Sending...", processing: "Processing...", paymentError: "Failed.", successTitle: "Success!", successDesc: "Confirmed.", btnClose: "Close", cancelPayment: "Cancel"
   },
   es: {
-    titleCart: "Carrito", titleCheckout: "Pago", titlePayment: "Pago Seguro", emptyCart: "Vacío", items: "artículo", itemsPlural: "artículos", clearCart: "Vaciar", name: "Nombre *", namePlaceholder: "Juan", phone: "Teléfono *", date: "Fecha *", time: "Hora *", pickupMode: "Método *", takeaway: "Para llevar", delivery: "Entrega", address: "Dirección *", addressPlaceholder: "Calle", zip: "CP *", floor: "Piso", floorPlaceholder: "Ej: 4", code: "Código", codePlaceholder: "Ej: A123", comments: "Notas", commentsPlaceholder: "Alergias...", totalEstimated: "Total", btnValidate: "Pagar", btnPay: "Pagar pedido", minOrderError: "Mínimo 25 CHF.", noTimeSlots: "No disponible.", today: "Hoy", tomorrow: "Mañana", sending: "Enviando...", processing: "Procesando...", paymentError: "Error.", successTitle: "¡Éxito!", successDesc: "Confirmado.", btnClose: "Cerrar", cancelPayment: "Cancelar"
+    titleCart: "Carrito", titleCheckout: "Pago", titlePayment: "Pago Seguro", emptyCart: "Vacío", items: "artículo", itemsPlural: "artículos", clearCart: "Vaciar", name: "Nombre *", namePlaceholder: "Juan", phone: "Teléfono *", date: "Fecha *", time: "Hora *", pickupMode: "Método *", takeaway: "Para llevar", delivery: "Entrega", address: "Dirección *", addressPlaceholder: "Calle", zip: "CP *", floor: "Piso", floorPlaceholder: "Ej: 4", code: "Código", codePlaceholder: "Ej: A123", comments: "Notas", commentsPlaceholder: "Alergias...", totalEstimated: "Total", btnValidate: "Pagar", btnPay: "Pagar pedido", minOrderError: "Mínimo 25 CHF para entrega.", noTimeSlots: "No disponible.", today: "Hoy", tomorrow: "Mañana", sending: "Enviando...", processing: "Procesando...", paymentError: "Error.", successTitle: "¡Éxito!", successDesc: "Confirmado.", btnClose: "Cerrar", cancelPayment: "Cancelar"
   }
 };
 
@@ -42,7 +42,6 @@ function StripeCheckoutForm({ total, onSuccess, onCancel, t }: StripeCheckoutFor
     const response = await stripe.confirmPayment({ elements, redirect: "if_required" });
 
     if (response.error) {
-      // ✅ Ici on utilise "response.error.message" : TypeScript ne peut pas se tromper
       setErrorMessage(response.error.message ?? t.paymentError);
       setIsProcessing(false);
     } else if (response.paymentIntent && response.paymentIntent.status === "succeeded") {
@@ -107,7 +106,9 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
     return slots;
   })() : [];
 
-  const isFormReady = (formData.type !== "Livraison" || totalPrice >= 25) && selectedDate && selectedTime !== "";
+  // ✅ Validation stricte du formulaire (inclut l'adresse si Livraison)
+  const isDeliveryValid = formData.type !== "Livraison" || (totalPrice >= 25 && formData.address.trim() !== "" && formData.zip.trim() !== "");
+  const isFormReady = selectedDate && selectedTime !== "" && formData.name.trim() !== "" && formData.phone.trim() !== "" && isDeliveryValid;
 
   const handleFinalSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -116,7 +117,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
     try {
       const { data, error } = await supabase.from('orders').insert([{
         customer_name: formData.name, customer_phone: formData.phone, pickup_date: selectedDate?.toISOString().split('T')[0],
-        pickup_time: selectedTime, order_type: formData.type, delivery_address: formData.address, total_amount: totalPrice,
+        pickup_time: selectedTime, order_type: formData.type, delivery_address: formData.type === "Livraison" ? `${formData.address} ${formData.floor ? '(Ét.'+formData.floor+')' : ''} ${formData.doorCode ? '[Code:'+formData.doorCode+']' : ''}` : null, delivery_zip: formData.type === "Livraison" ? formData.zip : null, total_amount: totalPrice,
         items: items.map(i => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity })), status: "En attente"
       }]).select();
       if (error) throw error;
@@ -152,7 +153,9 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                 <CheckCircle size={48} className="text-green-500" />
                 <h2 className="text-2xl font-bold text-white uppercase">{t.successTitle}</h2>
                 <div className="bg-neutral-800 p-4 rounded-xl border border-neutral-700 w-full"><p className="text-gray-300 text-sm mb-2">{t.successDesc}</p><p className="text-xl font-bold text-kabuki-red">#KBK-{orderId}</p></div>
-                <button onClick={onClose} className="w-full bg-neutral-800 text-white font-bold py-4 rounded-xl uppercase">{t.btnClose}</button>
+                
+                {/* 🔴 REDIRECTION AU LIEU DE FERMER */}
+                <button onClick={() => { onClose(); window.location.href = `/${lang}/track?order_id=${orderId}`; }} className="w-full bg-kabuki-red text-white font-bold py-4 rounded-xl uppercase shadow-lg shadow-red-900/20">Suivre ma commande</button>
               </div>
             ) : isPayment && clientSecret ? (
               <Elements options={{ clientSecret, appearance: { theme: 'night', variables: { colorPrimary: '#dc2626' } } }} stripe={stripePromise}>
@@ -183,20 +186,47 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                       <form id="checkout-form" onSubmit={handleFinalSubmit} className="space-y-6">
                         <input required placeholder={t.namePlaceholder} value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-black text-white border border-neutral-800 rounded-xl px-4 py-3 outline-none focus:border-kabuki-red transition" />
                         <input required type="tel" placeholder="079..." value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full bg-black text-white border border-neutral-800 rounded-xl px-4 py-3 outline-none focus:border-kabuki-red transition" />
+                        
                         <div className="space-y-2">
                           <label className="text-[10px] font-bold text-kabuki-red uppercase flex items-center gap-2"><Calendar size={12} /> {t.date}</label>
                           <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">{days.map((d, idx) => (
                             <button key={idx} type="button" onClick={() => { setSelectedDate(d); setSelectedTime(""); }} className={`shrink-0 px-4 py-2 rounded-xl border text-xs font-bold transition ${selectedDate?.toDateString() === d.toDateString() ? "bg-kabuki-red border-kabuki-red text-white" : "bg-neutral-800 border-neutral-700 text-gray-400"}`}>{d.toLocaleDateString(lang, { day: 'numeric', month: 'short' })}</button>
                           ))}</div>
                         </div>
+
                         <div className="space-y-2">
                           <label className="text-[10px] font-bold text-kabuki-red uppercase flex items-center gap-2"><Clock size={12} /> {t.time}</label>
                           <div className="grid grid-cols-4 gap-2">{availableSlots.map(s => <button key={s} type="button" onClick={() => setSelectedTime(s)} className={`py-2 rounded-lg border text-xs font-bold transition ${selectedTime === s ? "bg-kabuki-red border-kabuki-red text-white" : "bg-neutral-800 border-neutral-700 text-gray-400"}`}>{s}</button>)}</div>
                         </div>
+
+                        {/* ✅ Toggles Livraison / À Emporter */}
                         <div className="grid grid-cols-2 gap-3">
                           <button type="button" onClick={() => setFormData({...formData, type: "Click & Collect"})} className={`py-3 rounded-xl border text-xs font-bold transition ${formData.type !== "Livraison" ? "bg-kabuki-red border-kabuki-red text-white" : "bg-black border-neutral-800 text-gray-400"}`}>{t.takeaway}</button>
                           <button type="button" onClick={() => setFormData({...formData, type: "Livraison"})} className={`py-3 rounded-xl border text-xs font-bold transition ${formData.type === "Livraison" ? "bg-kabuki-red border-kabuki-red text-white" : "bg-black border-neutral-800 text-gray-400"}`}>{t.delivery}</button>
                         </div>
+
+                        {/* ✅ Champs de livraison animés */}
+                        <AnimatePresence>
+                          {formData.type === "Livraison" && (
+                            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="space-y-4 overflow-hidden">
+                              {totalPrice < 25 && (
+                                <div className="bg-red-900/20 text-red-500 text-xs font-bold p-3 rounded-xl border border-red-500/20 text-center uppercase tracking-widest">
+                                  ⚠️ {t.minOrderError}
+                                </div>
+                              )}
+                              <div className="space-y-3 bg-neutral-900 p-4 rounded-xl border border-neutral-800">
+                                <label className="text-[10px] font-bold text-kabuki-red uppercase flex items-center gap-2"><MapPin size={12} /> {t.address}</label>
+                                <input required={formData.type === "Livraison"} placeholder={t.addressPlaceholder} value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} className="w-full bg-black text-white border border-neutral-800 rounded-lg px-4 py-2 text-sm outline-none focus:border-kabuki-red transition" />
+                                <div className="grid grid-cols-2 gap-3">
+                                  <input required={formData.type === "Livraison"} placeholder={t.zip} value={formData.zip} onChange={e => setFormData({...formData, zip: e.target.value})} className="w-full bg-black text-white border border-neutral-800 rounded-lg px-4 py-2 text-sm outline-none focus:border-kabuki-red transition" />
+                                  <input placeholder={t.floorPlaceholder} value={formData.floor} onChange={e => setFormData({...formData, floor: e.target.value})} className="w-full bg-black text-white border border-neutral-800 rounded-lg px-4 py-2 text-sm outline-none focus:border-kabuki-red transition" />
+                                </div>
+                                <input placeholder={t.codePlaceholder} value={formData.doorCode} onChange={e => setFormData({...formData, doorCode: e.target.value})} className="w-full bg-black text-white border border-neutral-800 rounded-lg px-4 py-2 text-sm outline-none focus:border-kabuki-red transition" />
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+
                         <div className="space-y-1"><label className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-2"><MessageSquare size={12} /> {t.comments}</label><textarea value={formData.comments} onChange={e => setFormData({...formData, comments: e.target.value})} className="w-full bg-black text-white border border-neutral-800 rounded-xl px-4 py-3 outline-none focus:border-kabuki-red transition h-20 resize-none" placeholder={t.commentsPlaceholder} /></div>
                       </form>
                     )
@@ -205,7 +235,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                 {items.length > 0 && (
                   <div className="p-6 border-t border-neutral-800 bg-neutral-900 shrink-0">
                     <div className="flex justify-between items-center mb-4"><span className="text-gray-400 text-xs font-bold uppercase tracking-widest">{t.totalEstimated}</span><span className="text-2xl font-display font-bold text-white">{totalPrice.toFixed(2)} CHF</span></div>
-                    {!isCheckout ? <button onClick={() => setIsCheckout(true)} className="w-full bg-kabuki-red text-white font-bold py-4 rounded-xl uppercase flex items-center justify-center gap-2 hover:bg-red-700 transition shadow-lg">{t.btnValidate} <ArrowRight size={16} /></button> : <button type="submit" form="checkout-form" disabled={!isFormReady || isSubmitting} className={`w-full font-bold py-4 rounded-xl uppercase flex items-center justify-center gap-2 transition ${isFormReady && !isSubmitting ? "bg-kabuki-red text-white hover:bg-red-700" : "bg-neutral-800 text-neutral-500 cursor-not-allowed"}`}>{isSubmitting ? <><Loader2 size={18} className="animate-spin" /> {t.sending}</> : <><ShieldCheck size={18} /> Continuer</>}</button>}
+                    {!isCheckout ? <button onClick={() => setIsCheckout(true)} className="w-full bg-kabuki-red text-white font-bold py-4 rounded-xl uppercase flex items-center justify-center gap-2 hover:bg-red-700 transition shadow-lg">{t.btnValidate} <ArrowRight size={16} /></button> : <button type="submit" form="checkout-form" disabled={!isFormReady || isSubmitting} className={`w-full font-bold py-4 rounded-xl uppercase flex items-center justify-center gap-2 transition ${isFormReady && !isSubmitting ? "bg-kabuki-red text-white hover:bg-red-700 shadow-lg shadow-red-900/20" : "bg-neutral-800 text-neutral-500 cursor-not-allowed"}`}>{isSubmitting ? <><Loader2 size={18} className="animate-spin" /> {t.sending}</> : <><ShieldCheck size={18} /> Continuer</>}</button>}
                   </div>
                 )}
               </div>

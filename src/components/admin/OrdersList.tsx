@@ -3,22 +3,9 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/utils/supabase";
 import { 
-  Package, 
-  User, 
-  MapPin, 
-  Eye, 
-  XCircle, 
-  Calendar,
-  CheckCircle2, 
-  AlertCircle,
-  ChefHat,
-  Truck,
-  Loader2,
-  RefreshCw,
-  Clock,
-  MessageSquare,
-  Volume2, 
-  VolumeX 
+  Package, User, MapPin, Eye, XCircle, Calendar, CheckCircle2, 
+  AlertCircle, ChefHat, Truck, Loader2, RefreshCw, Clock, 
+  MessageSquare, Volume2, VolumeX 
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -54,14 +41,17 @@ export default function OrdersList() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    // Initialisation du son (public/sounds/notification.wav)
     audioRef.current = new Audio("/sounds/notification.wav");
+    audioRef.current.load();
   }, []);
 
   const playNotification = useCallback(() => {
+    console.log("📢 Tentative de lecture sonore...");
     if (isSoundEnabled && audioRef.current) {
       audioRef.current.currentTime = 0;
-      audioRef.current.play().catch(err => console.log("Lecture audio bloquée :", err));
+      audioRef.current.play()
+        .then(() => console.log("✅ Son joué"))
+        .catch(err => console.error("❌ Erreur audio :", err));
     }
   }, [isSoundEnabled]);
 
@@ -71,14 +61,13 @@ export default function OrdersList() {
       const { data, error } = await supabase
         .from("orders")
         .select("*")
-        // ✅ On masque les commandes qui n'ont pas encore fini le paiement Stripe
         .neq("status", "Paiement en cours") 
         .order("created_at", { ascending: false });
 
       if (data) setOrders(data as Order[]);
-      if (error) console.error(error);
+      if (error) console.error("Erreur Supabase:", error);
     } catch (err) {
-      console.error(err);
+      console.error("Erreur Fetch:", err);
     } finally {
       setLoading(false);
     }
@@ -104,14 +93,15 @@ export default function OrdersList() {
     fetchOrders();
 
     const subscription = supabase
-      .channel("kitchen-orders-realtime")
+      .channel("kitchen-monitor")
       .on(
         "postgres_changes", 
         { event: "UPDATE", schema: "public", table: "orders" }, 
         (payload) => {
-          // ✅ LOGIQUE DE NOTIFICATION :
-          // Si une commande passe de "Paiement en cours" à "Payé", on déclenche l'alerte
-          if (payload.old?.status === "Paiement en cours" && payload.new?.status === "Payé") {
+          const isNowPaid = payload.new?.status === "Payé";
+          const wasNotPaid = !payload.old || payload.old.status !== "Payé";
+
+          if (isNowPaid && wasNotPaid) {
             playNotification();
           }
           fetchOrders();
@@ -120,8 +110,10 @@ export default function OrdersList() {
       .on(
         "postgres_changes", 
         { event: "INSERT", schema: "public", table: "orders" }, 
-        () => {
-          // On rafraîchit la liste (elle restera filtrée si le statut est "Paiement en cours")
+        (payload) => {
+          if (payload.new?.status === "Payé") {
+            playNotification();
+          }
           fetchOrders();
         }
       )
@@ -129,6 +121,12 @@ export default function OrdersList() {
 
     return () => { supabase.removeChannel(subscription); };
   }, [fetchOrders, playNotification]);
+
+  const testSound = () => {
+    if (audioRef.current) {
+      audioRef.current.play().then(() => alert("Le son fonctionne !")).catch(e => alert("Erreur: " + e.message));
+    }
+  };
 
   const getStatusStyle = (status: string) => {
     switch (status) {
@@ -153,20 +151,26 @@ export default function OrdersList() {
       <div className="flex justify-between items-center bg-neutral-900/50 p-4 rounded-2xl border border-neutral-800 flex-wrap gap-4">
         <div className="flex items-center gap-6">
           <h2 className="text-xl font-display font-bold text-white uppercase tracking-widest flex items-center gap-3">
-            <ChefHat className="text-kabuki-red" /> Cuisine en Direct
+            <ChefHat className="text-kabuki-red" /> Cuisine
           </h2>
 
-          <button 
-            onClick={() => setIsSoundEnabled(!isSoundEnabled)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full text-[10px] font-bold uppercase transition-all border ${
-              isSoundEnabled 
-                ? "bg-green-500/10 border-green-500/30 text-green-500" 
-                : "bg-red-500/10 border-red-500/30 text-red-400"
-            }`}
-          >
-            {isSoundEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />}
-            {isSoundEnabled ? "Alertes Sonores : ON" : "Alertes Sonores : OFF"}
-          </button>
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => {
+                setIsSoundEnabled(!isSoundEnabled);
+                if (!isSoundEnabled && audioRef.current) audioRef.current.play().catch(() => {});
+              }}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-[10px] font-bold uppercase transition-all border ${
+                isSoundEnabled ? "bg-green-500/10 border-green-500/30 text-green-500" : "bg-red-500/10 border-red-500/30 text-red-400"
+              }`}
+            >
+              {isSoundEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />}
+              {isSoundEnabled ? "Alertes ON" : "Alertes OFF"}
+            </button>
+            {isSoundEnabled && (
+              <button onClick={testSound} className="text-[8px] text-gray-600 hover:text-white uppercase font-bold transition">Tester le son</button>
+            )}
+          </div>
         </div>
 
         <button onClick={() => fetchOrders(true)} className="flex items-center gap-2 text-[10px] bg-neutral-800 hover:bg-neutral-700 text-gray-400 px-4 py-2 rounded-full uppercase font-bold transition border border-neutral-700">
@@ -175,48 +179,47 @@ export default function OrdersList() {
       </div>
 
       <div className="grid gap-4">
-        {orders.map((order) => {
-          const style = getStatusStyle(order.status);
-          return (
-            <motion.div 
-              key={order.id} 
-              layout
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={`bg-neutral-900 border border-neutral-800 rounded-2xl p-5 flex flex-wrap md:flex-nowrap items-center justify-between gap-6 hover:border-neutral-700 transition shadow-xl ${(order.status === 'Livrée' || order.status === 'Annulée') ? 'opacity-40 grayscale' : ''}`}
-            >
-              <div className="min-w-[140px]">
-                <span className="text-[10px] font-bold text-kabuki-red uppercase tracking-tighter">#KBK-{order.id}</span>
-                <h4 className="text-white font-bold text-base uppercase leading-tight">{order.customer_name}</h4>
-                <span className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">{order.order_type}</span>
-              </div>
-
-              <div className="flex flex-col text-sm text-white font-bold">
-                <div className="flex items-center gap-2"><Calendar size={14} className="text-kabuki-red" /> {order.pickup_time}</div>
-              </div>
-
-              <div className="flex items-center gap-4 bg-black/30 p-2 rounded-2xl border border-neutral-800/50">
-                <div className={`text-[10px] font-bold px-3 py-1.5 rounded-xl uppercase flex items-center gap-2 border ${style.bg} ${style.text} ${style.border}`}>
-                  {style.icon} {order.status}
+        <AnimatePresence mode="popLayout">
+          {orders.map((order) => {
+            const style = getStatusStyle(order.status);
+            return (
+              <motion.div 
+                key={order.id} 
+                layout
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`bg-neutral-900 border border-neutral-800 rounded-2xl p-5 flex flex-wrap md:flex-nowrap items-center justify-between gap-6 hover:border-neutral-700 transition shadow-xl ${(order.status === 'Livrée' || order.status === 'Annulée') ? 'opacity-40 grayscale' : ''}`}
+              >
+                <div className="min-w-[140px]">
+                  <span className="text-[10px] font-bold text-kabuki-red uppercase tracking-tighter">#KBK-{order.id}</span>
+                  <h4 className="text-white font-bold text-base uppercase leading-tight">{order.customer_name}</h4>
+                  <span className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">{order.order_type}</span>
                 </div>
-                {style.next && (
-                  <button onClick={() => updateStatus(order.id, style.next!)} className="bg-white text-black hover:bg-kabuki-red hover:text-white px-4 py-1.5 rounded-xl text-[10px] font-black uppercase transition-all shadow-lg active:scale-95">
-                    {style.btnIcon} {style.btnLabel}
+                <div className="flex flex-col text-sm text-white font-bold">
+                  <div className="flex items-center gap-2"><Calendar size={14} className="text-kabuki-red" /> {order.pickup_time}</div>
+                </div>
+                <div className="flex items-center gap-4 bg-black/30 p-2 rounded-2xl border border-neutral-800/50">
+                  <div className={`text-[10px] font-bold px-3 py-1.5 rounded-xl uppercase flex items-center gap-2 border ${style.bg} ${style.text} ${style.border}`}>
+                    {style.icon} {order.status}
+                  </div>
+                  {style.next && (
+                    <button onClick={() => updateStatus(order.id, style.next!)} className="bg-white text-black hover:bg-kabuki-red hover:text-white px-4 py-1.5 rounded-xl text-[10px] font-black uppercase transition-all shadow-lg active:scale-95">
+                      {style.btnIcon} {style.btnLabel}
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="text-right mr-4">
+                    <span className="text-sm font-bold text-white">{Number(order.total_amount).toFixed(2)} CHF</span>
+                  </div>
+                  <button onClick={() => setSelectedOrder(order)} className="p-3 bg-neutral-800 hover:bg-neutral-700 text-white rounded-xl transition border border-neutral-700">
+                    <Eye size={18} />
                   </button>
-                )}
-              </div>
-
-              <div className="flex items-center gap-2">
-                <div className="text-right mr-4">
-                  <span className="text-sm font-bold text-white">{Number(order.total_amount).toFixed(2)} CHF</span>
                 </div>
-                <button onClick={() => setSelectedOrder(order)} className="p-3 bg-neutral-800 hover:bg-neutral-700 text-white rounded-xl transition border border-neutral-700">
-                  <Eye size={18} />
-                </button>
-              </div>
-            </motion.div>
-          );
-        })}
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
       </div>
 
       <AnimatePresence>
@@ -224,12 +227,10 @@ export default function OrdersList() {
           <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedOrder(null)} className="absolute inset-0 bg-black/90 backdrop-blur-md" />
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative bg-neutral-900 border border-neutral-800 w-full max-w-xl rounded-[40px] shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
-              
               <div className="p-8 border-b border-neutral-800 flex justify-between items-center bg-white/5">
-                <h3 className="text-white font-display font-bold uppercase text-2xl">#KBK-{selectedOrder.id}</h3>
+                <h3 className="text-white font-display font-bold uppercase text-2xl italic tracking-tighter">#KBK-{selectedOrder.id}</h3>
                 <button onClick={() => setSelectedOrder(null)} className="bg-neutral-800 p-3 rounded-full text-gray-500 hover:text-white transition"><XCircle size={24}/></button>
               </div>
-
               <div className="p-8 space-y-8 overflow-y-auto custom-scrollbar">
                 <div className="grid grid-cols-2 gap-8">
                   <div>
@@ -243,25 +244,18 @@ export default function OrdersList() {
                     <p className="text-kabuki-red text-[10px] font-bold uppercase">{selectedOrder.order_type}</p>
                   </div>
                 </div>
-
                 {selectedOrder.order_type === "Livraison" && (
                   <div className="bg-blue-500/5 p-5 rounded-3xl border border-blue-500/10 text-white">
                     <span className="text-[10px] text-blue-400 uppercase font-bold flex items-center gap-2 mb-2"><MapPin size={12}/> Destination</span>
                     <p className="text-base font-bold">{selectedOrder.delivery_address}, {selectedOrder.delivery_zip}</p>
                   </div>
                 )}
-
                 {selectedOrder.comments && (
                   <div className="bg-amber-500/5 p-5 rounded-3xl border border-amber-500/10">
-                    <span className="text-[10px] text-amber-500 uppercase font-bold flex items-center gap-2 mb-2">
-                      <MessageSquare size={12}/> Instructions & Allergies
-                    </span>
-                    <p className="text-white text-sm italic leading-relaxed">
-                      {"\""}{selectedOrder.comments}{"\""}
-                    </p>
+                    <span className="text-[10px] text-amber-500 uppercase font-bold flex items-center gap-2 mb-2"><MessageSquare size={12}/> Instructions & Allergies</span>
+                    <p className="text-white text-sm italic leading-relaxed">{"\""}{selectedOrder.comments}{"\""}</p>
                   </div>
                 )}
-
                 <div className="space-y-4">
                   <div className="flex items-center justify-between border-b border-neutral-800 pb-2 text-[10px] text-gray-500 uppercase font-bold">
                     <span className="flex items-center gap-2"><Package size={12}/> Contenu</span>
@@ -277,7 +271,6 @@ export default function OrdersList() {
                     </div>
                   ))}
                 </div>
-
                 <div className="pt-6 border-t border-neutral-800 flex flex-col gap-4 mt-auto">
                   <div className="flex justify-between items-center px-2">
                     <span className="text-gray-500 font-bold uppercase text-[10px]">Total</span>
@@ -291,15 +284,15 @@ export default function OrdersList() {
                   {selectedOrder.status !== "Livrée" && selectedOrder.status !== "Annulée" && (
                     <button 
                       onClick={async () => {
-                        if (!window.confirm("Annuler et rembourser ?")) return;
+                        if (!window.confirm("Annuler et rembourser cette commande ?")) return;
                         try {
                           const res = await fetch('/api/refund-order', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orderId: selectedOrder.id }) });
-                          const data = await res.json();
-                          if (!res.ok) throw new Error(data.error);
+                          if (!res.ok) throw new Error("Erreur");
                           updateStatus(selectedOrder.id, "Annulée");
                           setSelectedOrder(null); 
-                        } catch (error) {
-                          alert(error instanceof Error ? error.message : "Erreur");
+                        // ✅ Correction ici : on retire le mot-clé 'error' inutilisé
+                        } catch {
+                          alert("Erreur lors de l'annulation");
                         }
                       }}
                       className="w-full text-gray-500 hover:text-red-500 py-3 font-bold uppercase text-[10px] flex items-center justify-center gap-2 transition-colors border border-transparent hover:border-red-900/50 rounded-xl"

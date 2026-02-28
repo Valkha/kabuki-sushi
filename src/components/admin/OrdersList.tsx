@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react"; // ✅ Ajout de useRef
 import { supabase } from "@/utils/supabase";
 import { 
   Package, 
@@ -16,7 +16,9 @@ import {
   Loader2,
   RefreshCw,
   Clock,
-  MessageSquare 
+  MessageSquare,
+  Volume2, // ✅ Icone Son ON
+  VolumeX  // ✅ Icone Son OFF
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -47,6 +49,21 @@ export default function OrdersList() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [isSoundEnabled, setIsSoundEnabled] = useState(false); // ✅ État de l'alerte sonore
+
+  // ✅ Référence pour l'objet Audio afin d'éviter de le recréer à chaque rendu
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    // Initialisation du fichier son (assure-toi qu'il est dans public/sounds/notification.mp3)
+    audioRef.current = new Audio("/sounds/notification.wav");
+  }, []);
+
+  const playNotification = useCallback(() => {
+    if (isSoundEnabled && audioRef.current) {
+      audioRef.current.play().catch(err => console.log("L'audio n'a pas pu être joué :", err));
+    }
+  }, [isSoundEnabled]);
 
   const fetchOrders = useCallback(async (isManualRefresh = false) => {
     if (isManualRefresh) setLoading(true);
@@ -83,14 +100,21 @@ export default function OrdersList() {
 
   useEffect(() => {
     fetchOrders();
+
+    // ✅ Écoute intelligente : INSERT déclenche le son, UPDATE rafraîchit simplement
     const subscription = supabase
-      .channel("orders-admin")
-      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => {
-        fetchOrders();
+      .channel("orders-kitchen-monitor")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "orders" }, () => {
+        playNotification(); // 🔔 BING !
+        fetchOrders();      // Mise à jour de la liste
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "orders" }, () => {
+        fetchOrders();      // Rafraîchissement si un statut change
       })
       .subscribe();
+
     return () => { supabase.removeChannel(subscription); };
-  }, [fetchOrders]);
+  }, [fetchOrders, playNotification]);
 
   const getStatusStyle = (status: string) => {
     switch (status) {
@@ -113,9 +137,25 @@ export default function OrdersList() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center bg-neutral-900/50 p-4 rounded-2xl border border-neutral-800">
-        <h2 className="text-xl font-display font-bold text-white uppercase tracking-widest flex items-center gap-3">
-          <ChefHat className="text-kabuki-red" /> Cuisine en Direct
-        </h2>
+        <div className="flex items-center gap-6">
+          <h2 className="text-xl font-display font-bold text-white uppercase tracking-widest flex items-center gap-3">
+            <ChefHat className="text-kabuki-red" /> Cuisine en Direct
+          </h2>
+
+          {/* ✅ Bouton de contrôle du Son */}
+          <button 
+            onClick={() => setIsSoundEnabled(!isSoundEnabled)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-full text-[10px] font-bold uppercase transition-all border ${
+              isSoundEnabled 
+                ? "bg-green-500/10 border-green-500/30 text-green-500" 
+                : "bg-red-500/10 border-red-500/30 text-red-400"
+            }`}
+          >
+            {isSoundEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />}
+            {isSoundEnabled ? "Alertes Sonores : ON" : "Alertes Sonores : OFF"}
+          </button>
+        </div>
+
         <button onClick={() => fetchOrders(true)} className="flex items-center gap-2 text-[10px] bg-neutral-800 hover:bg-neutral-700 text-gray-400 px-4 py-2 rounded-full uppercase font-bold transition border border-neutral-700">
           <RefreshCw size={12} /> Actualiser
         </button>
@@ -196,7 +236,6 @@ export default function OrdersList() {
                   </div>
                 )}
 
-                {/* ✅ BLOC COMMENTAIRES CORRIGÉ */}
                 {selectedOrder.comments && (
                   <div className="bg-amber-500/5 p-5 rounded-3xl border border-amber-500/10">
                     <span className="text-[10px] text-amber-500 uppercase font-bold flex items-center gap-2 mb-2">

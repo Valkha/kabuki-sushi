@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m, useReducedMotion } from "framer-motion"; // ✅ Utilisation de 'm' pour le Lazy Loading
 import { ReactNode } from "react";
 
 interface Props {
@@ -9,29 +9,59 @@ interface Props {
   delay?: number;
   y?: number;
   x?: number;
+  className?: string; // ✅ Ajout pour plus de flexibilité
 }
 
-export default function Reveal({ children, width = "100%", delay = 0.2, y = 30, x = 0 }: Props) {
+export default function Reveal({ 
+  children, 
+  width = "100%", 
+  delay = 0.2, 
+  y = 20, // ✅ Réduit de 30 à 20 pour un mouvement plus subtil et rapide
+  x = 0,
+  className = ""
+}: Props) {
+  const shouldReduceMotion = useReducedMotion();
+
+  // ✅ 1. Si l'utilisateur préfère moins de mouvement, on annule les offsets
+  const initialY = shouldReduceMotion ? 0 : y;
+  const initialX = shouldReduceMotion ? 0 : x;
+
   return (
-    <div style={{ position: "relative", width, overflow: "hidden" }}>
-      <motion.div
+    <div 
+      className={`relative overflow-hidden ${className}`} 
+      style={{ width }}
+    >
+      <m.div
         variants={{
-          hidden: { opacity: 0, y, x },
-          visible: { opacity: 1, y: 0, x: 0 },
+          hidden: { 
+            opacity: 0, 
+            y: initialY, 
+            x: initialX,
+          },
+          visible: { 
+            opacity: 1, 
+            y: 0, 
+            x: 0,
+          },
         }}
         initial="hidden"
         whileInView="visible"
-        // CRUCIAL : once: true évite de recalculer l'animation à chaque scroll
-        // margin: "-50px" déclenche l'animation un peu plus tard pour plus de fluidité
-        viewport={{ once: true, margin: "-50px" }}
+        viewport={{ 
+          once: true, 
+          margin: "-20px", // ✅ Réduit pour déclencher l'animation plus tôt sur mobile
+          amount: "some" 
+        }}
         transition={{ 
-          duration: 0.5, 
-          delay, 
-          ease: [0.215, 0.61, 0.355, 1] // Ease out cubic pour plus de douceur
+          duration: 0.4, // ✅ Un peu plus rapide (0.4s au lieu de 0.5s) pour une sensation de réactivité
+          delay: shouldReduceMotion ? 0 : delay, 
+          ease: [0.25, 1, 0.5, 1], // ✅ Circ out : très fluide et pro
+        }}
+        style={{ 
+          willChange: "opacity, transform" // ✅ Optimisation GPU cruciale
         }}
       >
         {children}
-      </motion.div>
+      </m.div>
     </div>
   );
 }

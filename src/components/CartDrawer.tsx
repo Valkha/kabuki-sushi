@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Minus, Plus, Trash2, ShoppingBag, ArrowRight, ArrowLeft, Clock, Calendar, MessageSquare, Loader2, CheckCircle, ShieldCheck, MapPin } from "lucide-react";
+import { X, Minus, Plus, Trash2, ShoppingBag, ArrowRight, ArrowLeft, Clock, Calendar, MessageSquare, Loader2, CheckCircle, ShieldCheck, MapPin, Tag } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import Image from "next/image";
 import { useTranslation } from "@/context/LanguageContext";
@@ -14,18 +14,20 @@ const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
 
 const cartTranslations = {
   fr: {
-    titleCart: "Mon Panier", titleCheckout: "Validation", titlePayment: "Paiement Sécurisé", emptyCart: "Votre panier est vide", items: "article", itemsPlural: "articles", clearCart: "Vider le panier", name: "Nom Complet *", namePlaceholder: "Jean Dupont", phone: "Téléphone Mobile *", phonePlaceholder: "07X XXX XX XX", date: "Date *", time: "Heure *", pickupMode: "Mode de retrait *", takeaway: "À Emporter", delivery: "Livraison", address: "Adresse *", addressPlaceholder: "Rue des Alpes 12", zip: "NPA *", floor: "Étage", floorPlaceholder: "Ex: 4", code: "Code", codePlaceholder: "Ex: A123", comments: "Instructions / Allergies", commentsPlaceholder: "Sans wasabi...", totalEstimated: "Total à payer", btnValidate: "Passer à la caisse", btnPay: "Payer la commande", minOrderError: "Minimum 25 CHF requis pour la livraison.", noTimeSlots: "Aucun horaire disponible.", today: "Aujourd'hui", tomorrow: "Demain", sending: "Génération...", processing: "Traitement...", paymentError: "Le paiement a échoué.", successTitle: "Paiement réussi !", successDesc: "Votre commande est validée.", btnClose: "Fermer", cancelPayment: "Annuler", remove: "Supprimer", decrease: "Diminuer quantité", increase: "Augmenter quantité", back: "Retour"
+    titleCart: "Mon Panier", titleCheckout: "Validation", titlePayment: "Paiement Sécurisé", emptyCart: "Votre panier est vide", items: "article", itemsPlural: "articles", clearCart: "Vider le panier", name: "Nom Complet *", namePlaceholder: "Jean Dupont", phone: "Téléphone Mobile *", phonePlaceholder: "07X XXX XX XX", date: "Date *", time: "Heure *", pickupMode: "Mode de retrait *", takeaway: "À Emporter", delivery: "Livraison", address: "Adresse *", addressPlaceholder: "Rue des Alpes 12", zip: "NPA *", floor: "Étage", floorPlaceholder: "Ex: 4", code: "Code", codePlaceholder: "Ex: A123", comments: "Instructions / Allergies", commentsPlaceholder: "Sans wasabi...", totalEstimated: "Total à payer", btnValidate: "Passer à la caisse", btnPay: "Payer la commande", minOrderError: "Minimum 25 CHF requis pour la livraison.", noTimeSlots: "Aucun horaire disponible.", today: "Aujourd'hui", tomorrow: "Demain", sending: "Génération...", processing: "Traitement...", paymentError: "Le paiement a échoué.", successTitle: "Paiement réussi !", successDesc: "Votre commande est validée.", btnClose: "Fermer", cancelPayment: "Annuler", remove: "Supprimer", decrease: "Diminuer quantité", increase: "Augmenter quantité", back: "Retour",
+    couponLabel: "Code Promo", couponPlaceholder: "EX: KABUKI10", couponBtn: "Appliquer", couponInvalid: "Code invalide ou expiré", couponMinError: "Min. {min} CHF requis", discount: "Réduction"
   },
   en: {
-    titleCart: "My Cart", titleCheckout: "Checkout", titlePayment: "Secure Payment", emptyCart: "Empty", items: "item", itemsPlural: "items", clearCart: "Clear", name: "Name *", namePlaceholder: "John Doe", phone: "Mobile Phone *", phonePlaceholder: "07X XXX XX XX", date: "Date *", time: "Time *", pickupMode: "Method *", takeaway: "Takeaway", delivery: "Delivery", address: "Address *", addressPlaceholder: "Street", zip: "ZIP *", floor: "Floor", floorPlaceholder: "Ex: 4", code: "Code", codePlaceholder: "Ex: A123", comments: "Instructions", commentsPlaceholder: "Allergies...", totalEstimated: "Total", btnValidate: "Checkout", btnPay: "Pay Now", minOrderError: "Min 25 CHF for delivery.", noTimeSlots: "No slots.", today: "Today", tomorrow: "Tomorrow", sending: "Sending...", processing: "Processing...", paymentError: "Failed.", successTitle: "Success!", successDesc: "Confirmed.", btnClose: "Close", cancelPayment: "Cancel", remove: "Remove", decrease: "Decrease", increase: "Increase", back: "Back"
+    titleCart: "My Cart", titleCheckout: "Checkout", titlePayment: "Secure Payment", emptyCart: "Empty", items: "item", itemsPlural: "items", clearCart: "Clear", name: "Name *", namePlaceholder: "John Doe", phone: "Mobile Phone *", phonePlaceholder: "07X XXX XX XX", date: "Date *", time: "Time *", pickupMode: "Method *", takeaway: "Takeaway", delivery: "Delivery", address: "Address *", addressPlaceholder: "Street", zip: "ZIP *", floor: "Floor", floorPlaceholder: "Ex: 4", code: "Code", codePlaceholder: "Ex: A123", comments: "Instructions", commentsPlaceholder: "Allergies...", totalEstimated: "Total", btnValidate: "Checkout", btnPay: "Pay Now", minOrderError: "Min 25 CHF for delivery.", noTimeSlots: "No slots.", today: "Today", tomorrow: "Tomorrow", sending: "Sending...", processing: "Processing...", paymentError: "Failed.", successTitle: "Success!", successDesc: "Confirmed.", btnClose: "Close", cancelPayment: "Cancel", remove: "Remove", decrease: "Decrease", increase: "Increase", back: "Back",
+    couponLabel: "Promo Code", couponPlaceholder: "EX: KABUKI10", couponBtn: "Apply", couponInvalid: "Invalid or expired", couponMinError: "Min. {min} CHF required", discount: "Discount"
   },
   es: {
-    titleCart: "Carrito", titleCheckout: "Pago", titlePayment: "Pago Seguro", emptyCart: "Vacío", items: "artículo", itemsPlural: "artículos", clearCart: "Vaciar", name: "Nombre *", namePlaceholder: "Juan", phone: "Teléfono *", phonePlaceholder: "07X XXX XX XX", date: "Fecha *", time: "Hora *", pickupMode: "Método *", takeaway: "Para llevar", delivery: "Entrega", address: "Dirección *", addressPlaceholder: "Calle", zip: "CP *", floor: "Piso", floorPlaceholder: "Ej: 4", code: "Código", codePlaceholder: "Ej: A123", comments: "Notas", commentsPlaceholder: "Alergias...", totalEstimated: "Total", btnValidate: "Pagar", btnPay: "Pagar pedido", minOrderError: "Mínimo 25 CHF para entrega.", noTimeSlots: "No disponible.", today: "Hoy", tomorrow: "Mañana", sending: "Enviando...", processing: "Processing...", paymentError: "Error.", successTitle: "¡Éxito!", successDesc: "Confirmado.", btnClose: "Cerrar", cancelPayment: "Cancelar", remove: "Eliminar", decrease: "Disminuir", increase: "Aumentar", back: "Volver"
+    titleCart: "Carrito", titleCheckout: "Pago", titlePayment: "Pago Seguro", emptyCart: "Vacío", items: "artículo", itemsPlural: "artículos", clearCart: "Vaciar", name: "Nombre *", namePlaceholder: "Juan", phone: "Teléfono *", phonePlaceholder: "07X XXX XX XX", date: "Fecha *", time: "Hora *", pickupMode: "Método *", takeaway: "Para llevar", delivery: "Entrega", address: "Dirección *", addressPlaceholder: "Calle", zip: "CP *", floor: "Piso", floorPlaceholder: "Ej: 4", code: "Código", codePlaceholder: "Ej: A123", comments: "Notas", commentsPlaceholder: "Alergias...", totalEstimated: "Total", btnValidate: "Pagar", btnPay: "Pagar pedido", minOrderError: "Mínimo 25 CHF para entrega.", noTimeSlots: "No disponible.", today: "Hoy", tomorrow: "Mañana", sending: "Enviando...", processing: "Procesando...", paymentError: "Error.", successTitle: "¡Éxito!", successDesc: "Confirmado.", btnClose: "Cerrar", cancelPayment: "Cancelar", remove: "Eliminar", decrease: "Disminuir", increase: "Aumentar", back: "Volver",
+    couponLabel: "Código Promo", couponPlaceholder: "EJ: KABUKI10", couponBtn: "Aplicar", couponInvalid: "Inválido o expirado", couponMinError: "Min. {min} CHF requerido", discount: "Descuento"
   }
 };
 
 interface CartDrawerProps { isOpen: boolean; onClose: () => void; }
-// ✅ Remplacement de 'any' par un type strict
 interface StripeCheckoutFormProps { total: number; onSuccess: () => void; onCancel: () => void; t: Record<string, string>; orderId: number; }
 
 function StripeCheckoutForm({ total, onSuccess, onCancel, t }: StripeCheckoutFormProps) {
@@ -84,6 +86,12 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   const [orderId, setOrderId] = useState<number | null>(null);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
 
+  // ✅ ÉTATS COUPONS
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<{code: string, discount_type: string, discount_value: number, min_order_amount: number} | null>(null);
+  const [couponError, setCouponError] = useState("");
+  const [isVerifyingCoupon, setIsVerifyingCoupon] = useState(false);
+
   const [formData, setFormData] = useState({ name: "", phone: "", type: "Click & Collect", address: "", zip: "", floor: "", doorCode: "", comments: "" });
   
   const days = [];
@@ -108,6 +116,45 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
     return slots;
   })() : [];
 
+  // ✅ LOGIQUE DE CALCUL DU PRIX FINAL
+  const discountAmount = appliedCoupon 
+    ? (appliedCoupon.discount_type === 'percentage' ? (totalPrice * appliedCoupon.discount_value / 100) : appliedCoupon.discount_value)
+    : 0;
+  const finalPrice = Math.max(0, totalPrice - discountAmount);
+
+  // ✅ SÉCURITÉ : Retirer le coupon si le total baisse sous le seuil min
+  useEffect(() => {
+    if (appliedCoupon && totalPrice < appliedCoupon.min_order_amount) {
+      setAppliedCoupon(null);
+      setCouponError(t.couponMinError.replace("{min}", appliedCoupon.min_order_amount.toString()));
+    }
+  }, [totalPrice, appliedCoupon, t.couponMinError]);
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setIsVerifyingCoupon(true);
+    setCouponError("");
+
+    const { data, error } = await supabase
+      .from('coupons')
+      .select('*')
+      .eq('code', couponCode.toUpperCase().trim())
+      .eq('is_active', true)
+      .single();
+
+    if (error || !data) {
+      setCouponError(t.couponInvalid);
+      setAppliedCoupon(null);
+    } else if (totalPrice < data.min_order_amount) {
+      setCouponError(t.couponMinError.replace("{min}", data.min_order_amount.toString()));
+      setAppliedCoupon(null);
+    } else {
+      setAppliedCoupon(data);
+      setCouponCode("");
+    }
+    setIsVerifyingCoupon(false);
+  };
+
   const isDeliveryValid = formData.type !== "Livraison" || (totalPrice >= 25 && formData.address.trim() !== "" && formData.zip.trim() !== "");
   const isFormReady = selectedDate && selectedTime !== "" && formData.name.trim() !== "" && formData.phone.trim() !== "" && isDeliveryValid;
 
@@ -124,7 +171,9 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
         order_type: formData.type, 
         delivery_address: formData.type === "Livraison" ? `${formData.address} ${formData.floor ? '(Ét.'+formData.floor+')' : ''} ${formData.doorCode ? '[Code:'+formData.doorCode+']' : ''}` : null, 
         delivery_zip: formData.type === "Livraison" ? formData.zip : null, 
-        total_amount: totalPrice,
+        total_amount: finalPrice, // ✅ Utilisation du prix après coupon
+        discount_amount: discountAmount, // ✅ Historique
+        coupon_code: appliedCoupon?.code || null, // ✅ Historique
         items: items.map(i => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity })), 
         status: "Paiement en cours",
         comments: formData.comments 
@@ -134,13 +183,21 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
       const newId = data[0].id;
       setOrderId(newId);
 
-      const res = await fetch("/api/create-payment-intent", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ amount: totalPrice, orderId: newId }) });
+      // ✅ Envoi du code promo au backend pour vérification sécurisée
+      const res = await fetch("/api/create-payment-intent", { 
+        method: "POST", 
+        headers: { "Content-Type": "application/json" }, 
+        body: JSON.stringify({ 
+          amount: finalPrice, 
+          orderId: newId,
+          couponCode: appliedCoupon?.code 
+        }) 
+      });
       const payData = await res.json();
       if (payData.error) throw new Error(payData.error);
       
       setClientSecret(payData.clientSecret);
       setIsPayment(true);
-      // ✅ Correction de 'any' vers 'unknown' pour la sécurité TypeScript
     } catch (err: unknown) {
       const errorObj = err as Error;
       alert(`Erreur : ${errorObj.message}`);
@@ -177,7 +234,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
               </div>
             ) : isPayment && clientSecret && orderId ? (
               <Elements options={{ clientSecret, appearance: { theme: 'night', variables: { colorPrimary: '#dc2626' } } }} stripe={stripePromise}>
-                <StripeCheckoutForm total={totalPrice} orderId={orderId} onSuccess={() => { clearCart(); setIsPayment(false); setIsSuccess(true); }} onCancel={() => setIsPayment(false)} t={t} />
+                <StripeCheckoutForm total={finalPrice} orderId={orderId} onSuccess={() => { clearCart(); setIsPayment(false); setIsSuccess(true); }} onCancel={() => setIsPayment(false)} t={t} />
               </Elements>
             ) : (
               <div className="flex-1 flex flex-col overflow-hidden">
@@ -203,10 +260,41 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                             <button onClick={() => removeFromCart(i.id)} aria-label={t.remove} className="text-gray-400 hover:text-kabuki-red transition p-1"><Trash2 size={16} aria-hidden="true" /></button>
                           </div>
                         ))}
+
+                        {/* ✅ SECTION CODE PROMO */}
+                        <div className="mt-6 p-4 bg-black/40 rounded-2xl border border-neutral-800">
+                          <label htmlFor="coupon" className="text-[10px] font-bold text-gray-500 uppercase mb-2 flex items-center gap-2"><Tag size={12}/> {t.couponLabel}</label>
+                          <div className="flex gap-2">
+                            <input 
+                              id="coupon"
+                              type="text" 
+                              value={couponCode}
+                              onChange={(e) => setCouponCode(e.target.value)}
+                              placeholder={t.couponPlaceholder}
+                              className="flex-1 bg-black border border-neutral-800 rounded-xl px-4 py-2 text-xs text-white focus:border-kabuki-red outline-none transition uppercase"
+                            />
+                            <button 
+                              onClick={handleApplyCoupon}
+                              disabled={isVerifyingCoupon || !couponCode}
+                              className="bg-neutral-800 hover:bg-neutral-700 disabled:opacity-50 text-white px-4 py-2 rounded-xl text-[10px] font-bold uppercase transition"
+                            >
+                              {isVerifyingCoupon ? <Loader2 size={14} className="animate-spin" /> : t.couponBtn}
+                            </button>
+                          </div>
+                          {couponError && <p className="text-red-500 text-[9px] mt-2 font-bold uppercase">{couponError}</p>}
+                          {appliedCoupon && (
+                            <div className="flex items-center justify-between mt-2">
+                              <p className="text-green-500 text-[9px] font-bold uppercase flex items-center gap-1">✓ {appliedCoupon.code} (-{appliedCoupon.discount_value}{appliedCoupon.discount_type === 'percentage' ? '%' : ' CHF'})</p>
+                              <button onClick={() => setAppliedCoupon(null)} className="text-gray-500 hover:text-red-500 transition"><X size={12}/></button>
+                            </div>
+                          )}
+                        </div>
+
                         <button onClick={clearCart} className="text-[10px] text-gray-400 hover:text-red-500 font-bold uppercase flex items-center gap-2 mx-auto transition"><Trash2 size={12} aria-hidden="true" /> {t.clearCart}</button>
                       </div>
                     ) : (
                       <form id="checkout-form" onSubmit={handleFinalSubmit} className="space-y-6">
+                        {/* Formulaire inchangé... */}
                         <div className="space-y-1">
                             <label htmlFor="customer_name" className="text-[10px] font-bold text-gray-400 uppercase ml-1">{t.name}</label>
                             <input id="customer_name" required placeholder={t.namePlaceholder} value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-black text-white border border-neutral-800 rounded-xl px-4 py-3 outline-none focus:border-kabuki-red transition" />
@@ -230,7 +318,6 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                           <div className="grid grid-cols-4 gap-2">
                             {availableSlots.map(s => <button key={s} type="button" onClick={() => setSelectedTime(s)} aria-pressed={selectedTime === s} className={`py-2 rounded-lg border text-xs font-bold transition ${selectedTime === s ? "bg-kabuki-red border-kabuki-red text-white shadow-md" : "bg-neutral-800 border-neutral-700 text-gray-400"}`}>{s}</button>)}
                           </div>
-                          {availableSlots.length === 0 && <p className="text-[10px] text-gray-400">{t.noTimeSlots}</p>}
                         </fieldset>
 
                         <div role="radiogroup" aria-label={t.pickupMode} className="grid grid-cols-2 gap-3">
@@ -250,14 +337,8 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                                 <label htmlFor="delivery_address" className="text-[10px] font-bold text-kabuki-red uppercase flex items-center gap-2"><MapPin size={12} aria-hidden="true" /> {t.address}</label>
                                 <input id="delivery_address" required={formData.type === "Livraison"} placeholder={t.addressPlaceholder} value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} className="w-full bg-black text-white border border-neutral-800 rounded-lg px-4 py-2 text-sm outline-none focus:border-kabuki-red transition" />
                                 <div className="grid grid-cols-2 gap-3">
-                                  <div className="space-y-1">
-                                    <label htmlFor="zip_code" className="sr-only">{t.zip}</label>
-                                    <input id="zip_code" required={formData.type === "Livraison"} placeholder={t.zip} value={formData.zip} onChange={e => setFormData({...formData, zip: e.target.value})} className="w-full bg-black text-white border border-neutral-800 rounded-lg px-4 py-2 text-sm outline-none focus:border-kabuki-red transition" />
-                                  </div>
-                                  <div className="space-y-1">
-                                    <label htmlFor="floor_number" className="sr-only">{t.floor}</label>
-                                    <input id="floor_number" placeholder={t.floorPlaceholder} value={formData.floor} onChange={e => setFormData({...formData, floor: e.target.value})} className="w-full bg-black text-white border border-neutral-800 rounded-lg px-4 py-2 text-sm outline-none focus:border-kabuki-red transition" />
-                                  </div>
+                                  <input id="zip_code" required={formData.type === "Livraison"} placeholder={t.zip} value={formData.zip} onChange={e => setFormData({...formData, zip: e.target.value})} className="w-full bg-black text-white border border-neutral-800 rounded-lg px-4 py-2 text-sm outline-none focus:border-kabuki-red transition" />
+                                  <input id="floor_number" placeholder={t.floorPlaceholder} value={formData.floor} onChange={e => setFormData({...formData, floor: e.target.value})} className="w-full bg-black text-white border border-neutral-800 rounded-lg px-4 py-2 text-sm outline-none focus:border-kabuki-red transition" />
                                 </div>
                                 <input id="door_code" placeholder={t.codePlaceholder} value={formData.doorCode} onChange={e => setFormData({...formData, doorCode: e.target.value})} className="w-full bg-black text-white border border-neutral-800 rounded-lg px-4 py-2 text-sm outline-none focus:border-kabuki-red transition" />
                               </div>
@@ -275,10 +356,25 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                 </div>
                 {items.length > 0 && (
                   <div className="p-6 border-t border-neutral-800 bg-neutral-900 shrink-0 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
-                    <div className="flex justify-between items-center mb-4">
-                      <span className="text-gray-400 text-xs font-bold uppercase tracking-widest">{t.totalEstimated}</span>
-                      <span className="text-2xl font-display font-bold text-white">{totalPrice.toFixed(2)} CHF</span>
+                    <div className="space-y-2 mb-4">
+                      {appliedCoupon && (
+                        <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest">
+                          <span className="text-gray-500">{t.totalEstimated}</span>
+                          <span className="text-gray-500 line-through">{totalPrice.toFixed(2)} CHF</span>
+                        </div>
+                      )}
+                      {appliedCoupon && (
+                        <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-green-500">
+                          <span>{t.discount} ({appliedCoupon.code})</span>
+                          <span>-{discountAmount.toFixed(2)} CHF</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-400 text-xs font-bold uppercase tracking-widest">Total final</span>
+                        <span className="text-2xl font-display font-bold text-white">{finalPrice.toFixed(2)} CHF</span>
+                      </div>
                     </div>
+                    
                     {!isCheckout ? (
                       <button onClick={() => setIsCheckout(true)} className="w-full bg-kabuki-red text-white font-bold py-4 rounded-xl uppercase flex items-center justify-center gap-2 hover:bg-red-700 transition shadow-lg shadow-red-900/30">
                         {t.btnValidate} <ArrowRight size={16} aria-hidden="true" />

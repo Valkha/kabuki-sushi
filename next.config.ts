@@ -41,8 +41,8 @@ const nextConfig: NextConfig = {
   },
 
   compiler: {
-    // Nettoyage des logs pour la performance en production
-    removeConsole: process.env.NODE_ENV === "production",
+    // ✅ On garde les console.error() pour pouvoir débugger sur Vercel !
+    removeConsole: process.env.NODE_ENV === "production" ? { exclude: ['error'] } : false,
   },
 
   onDemandEntries: {

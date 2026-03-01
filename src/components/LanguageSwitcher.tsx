@@ -1,30 +1,48 @@
 "use client";
 
 import { useTranslation } from "@/context/LanguageContext";
-import { motion } from "framer-motion";
+import { usePathname, useRouter } from "next/navigation";
+import { m } from "framer-motion"; 
 
 export default function LanguageSwitcher() {
   const { lang, setLang } = useTranslation();
+  const pathname = usePathname();
+  const router = useRouter();
 
-  const languages = [
+  // ✅ On utilise 'typeof lang' pour récupérer le type exact ('fr'|'en'|'es') 
+  // sans même avoir besoin d'importer explicitement le type Language.
+  const languages: { code: typeof lang; label: string }[] = [
     { code: "fr", label: "FR" },
     { code: "en", label: "EN" },
     { code: "es", label: "ES" },
-  ] as const;
+  ];
+
+  const handleLanguageChange = (newLang: typeof lang) => {
+    const segments = pathname.split("/");
+    segments[1] = newLang;
+    const newPath = segments.join("/");
+    
+    setLang(newLang);
+    router.push(newPath);
+  };
 
   return (
-    <div className="flex items-center gap-3 border-l border-neutral-800 ml-4 pl-4 h-6">
+    <div className="flex gap-3">
       {languages.map((l) => (
         <button
           key={l.code}
-          onClick={() => setLang(l.code)}
-          className={`text-[10px] font-bold tracking-widest transition-all duration-300 ${
-            lang === l.code ? "text-kabuki-red scale-110" : "text-neutral-500 hover:text-white"
+          type="button"
+          onClick={() => handleLanguageChange(l.code)}
+          className={`text-[10px] font-bold tracking-widest transition-colors p-1 ${
+            lang === l.code ? "text-kabuki-red" : "text-gray-400 hover:text-white"
           }`}
         >
-          <motion.span whileTap={{ scale: 0.9 }}>
+          <m.span 
+            whileTap={{ scale: 0.9 }}
+            style={{ display: "inline-block", willChange: "transform" }}
+          >
             {l.label}
-          </motion.span>
+          </m.span>
         </button>
       ))}
     </div>

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import TransitionLink from "./TransitionLink";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion"; // ✅ Utilisation de 'm' au lieu de 'motion'
 import { useTranslation } from "@/context/LanguageContext";
 import LanguageSwitcher from "./LanguageSwitcher";
 import { supabase } from "@/utils/supabase";
@@ -26,12 +26,9 @@ export default function Navbar({ onOpenCart }: NavbarProps) {
 
   const [prevPathname, setPrevPathname] = useState(pathname);
 
-  // Fermeture automatique du menu mobile lors d'un changement de page
   if (pathname !== prevPathname) {
     setPrevPathname(pathname);
-    if (isOpen) {
-      setIsOpen(false);
-    }
+    if (isOpen) setIsOpen(false);
   }
 
   useEffect(() => {
@@ -91,7 +88,8 @@ export default function Navbar({ onOpenCart }: NavbarProps) {
             >
               {link.name}
               {isActive(link.path) && (
-                <motion.div 
+                // ✅ CHANGEMENT : m.div
+                <m.div 
                   layoutId="activeNav"
                   className="absolute -bottom-1 left-0 right-0 h-0.5 bg-kabuki-red"
                   transition={{ type: "spring", stiffness: 380, damping: 30 }}
@@ -100,7 +98,6 @@ export default function Navbar({ onOpenCart }: NavbarProps) {
             </TransitionLink>
           ))}
           
-          {/* ✅ PANIER DESKTOP */}
           <button 
             onClick={onOpenCart} 
             aria-label={`Ouvrir le panier, ${totalItems} articles`}
@@ -109,14 +106,15 @@ export default function Navbar({ onOpenCart }: NavbarProps) {
             <ShoppingCart size={22} className="text-gray-300 group-hover:text-white transition-colors" />
             <AnimatePresence>
               {totalItems > 0 && (
-                <motion.div 
+                // ✅ CHANGEMENT : m.div
+                <m.div 
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   exit={{ scale: 0 }}
                   className="absolute -top-1 -right-1 bg-kabuki-red text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-kabuki-black"
                 >
                   {totalItems}
-                </motion.div>
+                </m.div>
               )}
             </AnimatePresence>
           </button>
@@ -144,51 +142,50 @@ export default function Navbar({ onOpenCart }: NavbarProps) {
         <div className="flex md:hidden items-center space-x-6">
           <button 
             onClick={onOpenCart} 
-            aria-label={`Ouvrir le panier, ${totalItems} articles`}
             className="relative p-2 z-50 active:scale-90 transition-transform"
           >
             <ShoppingCart size={24} className="text-white" />
             <AnimatePresence>
               {totalItems > 0 && (
-                <motion.div 
+                // ✅ CHANGEMENT : m.div
+                <m.div 
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   exit={{ scale: 0 }}
                   className="absolute top-0 right-0 bg-kabuki-red text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-kabuki-black"
                 >
                   {totalItems}
-                </motion.div>
+                </m.div>
               )}
             </AnimatePresence>
           </button>
 
-          {/* ✅ MENU BURGER */}
           <button 
             onClick={() => setIsOpen(!isOpen)} 
-            aria-label={isOpen ? "Fermer le menu" : "Ouvrir le menu principal"}
-            aria-expanded={isOpen}
-            className="z-50 w-8 h-10 flex flex-col justify-center items-center focus:outline-none"
+            className="z-50 w-8 h-10 flex flex-col justify-center items-center"
           >
-            <motion.span 
+            {/* ✅ CHANGEMENTS : m.span */}
+            <m.span 
               animate={isOpen ? { rotate: 45, y: 8 } : { rotate: 0, y: 0 }}
               className="w-8 h-0.5 bg-white block mb-2 rounded-full"
-            ></motion.span>
-            <motion.span 
+            ></m.span>
+            <m.span 
               animate={isOpen ? { opacity: 0 } : { opacity: 1 }}
               className="w-8 h-0.5 bg-kabuki-red block mb-2 rounded-full"
-            ></motion.span>
-            <motion.span 
+            ></m.span>
+            <m.span 
               animate={isOpen ? { rotate: -45, y: -10 } : { rotate: 0, y: 0 }}
               className="w-8 h-0.5 bg-white block rounded-full"
-            ></motion.span>
+            ></m.span>
           </button>
         </div>
       </div>
 
-      {/* --- MENU MOBILE DÉROULANT --- */}
+      {/* --- MENU MOBILE --- */}
       <AnimatePresence>
         {isOpen && (
-          <motion.div
+          // ✅ CHANGEMENT : m.div
+          <m.div
             initial={{ opacity: 0, x: "100%" }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: "100%" }}
@@ -209,17 +206,6 @@ export default function Navbar({ onOpenCart }: NavbarProps) {
                 </li>
               ))}
 
-              {user && (
-                <li>
-                  <TransitionLink 
-                    href={`/${lang}/admin/menu`} 
-                    className="text-kabuki-red font-display font-bold uppercase tracking-widest block text-xl underline"
-                  >
-                    Panneau Admin
-                  </TransitionLink>
-                </li>
-              )}
-
               <li className="pt-8 flex flex-col items-center gap-6">
                   <TransitionLink 
                     href={`/${lang}/traiteur#devis`} 
@@ -233,7 +219,7 @@ export default function Navbar({ onOpenCart }: NavbarProps) {
                   </div>
               </li>
             </ul>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </nav>

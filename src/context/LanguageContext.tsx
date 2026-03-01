@@ -5,7 +5,7 @@ import { useParams, useRouter, usePathname } from "next/navigation";
 import { translations } from "@/constants/translations";
 
 // --- TYPAGE ---
-type Language = "fr" | "en" | "es";
+export type Language = "fr" | "en" | "es";
 
 // ✅ On définit le type des traductions basé sur la structure réelle de ton fichier FR
 type TranslationSchema = typeof translations.fr;

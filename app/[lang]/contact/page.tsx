@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion"; // ✅ Utilisation de 'm' (Lazy)
 import { 
   Phone, MapPin, Send, Loader2, CheckCircle, 
   Users, Calendar, Clock, ArrowRight 
@@ -10,7 +10,7 @@ import Reveal from "@/components/Reveal";
 import { useTranslation } from "@/context/LanguageContext";
 import { z } from "zod";
 
-// ✅ Schéma de validation pour le contact
+// ✅ Schéma de validation
 const contactSchema = z.object({
   name: z.string().min(2, "Le nom est trop court").max(50),
   email: z.string().email("Email invalide"),
@@ -25,8 +25,8 @@ export default function ContactPage() {
   const { t, lang } = useTranslation();
   const [errors, setErrors] = useState<Record<string, string>>({});
   
-  const googleMapsUrl = "https://maps.app.goo.gl/KabukiSushiGenève"; // Remplacer par ton lien réel
-  const mapEmbedUrl = "https://www.google.com/maps/embed?pb=..."; // Remplacer par ton embed réel
+  const googleMapsUrl = "https://maps.google.com"; // À mettre à jour avec ton lien réel
+  const mapEmbedUrl = "https://www.google.com/maps/embed?..."; // À mettre à jour
 
   const findUsLabel = { fr: "Trouvez-nous", en: "Find us", es: "Encuéntranos" }[lang as "fr" | "en" | "es"] || "Trouvez-nous";
   
@@ -55,7 +55,6 @@ export default function ContactPage() {
       });
       setErrors(formattedErrors);
 
-      // 🚀 AUTO-SCROLL MOBILE
       const firstErrorField = String(result.error.issues[0].path[0]);
       const element = document.getElementsByName(firstErrorField)[0];
       
@@ -94,7 +93,7 @@ export default function ContactPage() {
       
       {/* --- HERO HEADER --- */}
       <div className="bg-black text-white pt-24 md:pt-32 pb-20 text-center relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('/pattern-kimono.png')] opacity-5 z-0"></div>
+        <div className="absolute inset-0 bg-[url('/pattern-kimono.png')] opacity-5 z-0" aria-hidden="true"></div>
         <Reveal>
           <h1 className="text-4xl md:text-6xl font-display font-bold uppercase tracking-widest relative z-10">
             {t.contact.title}
@@ -129,7 +128,6 @@ export default function ContactPage() {
               </div>
             </Reveal>
 
-            {/* ✅ HORAIRES : Utilisation de la variable 'days' pour corriger ESLint */}
             <Reveal x={-30} delay={0.2}>
               <div className="flex gap-6 items-start group">
                 <div className="w-14 h-14 bg-neutral-800 rounded-2xl flex items-center justify-center text-kabuki-red border border-neutral-700 group-hover:bg-kabuki-red group-hover:text-white transition-all shadow-xl shrink-0">
@@ -183,10 +181,12 @@ export default function ContactPage() {
             <div className="bg-neutral-800/40 backdrop-blur-xl p-8 md:p-10 rounded-[2.5rem] shadow-2xl border border-neutral-700/50 relative overflow-hidden">
               <AnimatePresence mode="wait">
                 {!isSent ? (
-                  <motion.form 
+                  // ✅ CORRECTIF : m.form au lieu de motion.form
+                  <m.form 
                     key="contact-form"
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                     onSubmit={handleSubmit} className="space-y-6"
+                    style={{ willChange: "transform, opacity" }}
                   >
                     <h3 className="text-2xl font-display font-bold text-white uppercase mb-4">
                         {t.catering.formSection.title}
@@ -195,12 +195,12 @@ export default function ContactPage() {
                     <div className="grid md:grid-cols-2 gap-6">
                       <div className="space-y-2">
                         <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{t.catering.formSection.name}</label>
-                        <input name="name" type="text" className={`w-full bg-black/40 text-white border ${errors.name ? 'border-kabuki-red' : 'border-neutral-700'} focus:border-kabuki-red rounded-2xl px-5 py-4 outline-none transition-all shadow-inner`} value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                        <input name="name" type="text" autoComplete="name" className={`w-full bg-black/40 text-white border ${errors.name ? 'border-kabuki-red' : 'border-neutral-700'} focus:border-kabuki-red rounded-2xl px-5 py-4 outline-none transition-all shadow-inner`} value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
                         {errors.name && <p className="text-kabuki-red text-[9px] font-bold uppercase mt-1">{errors.name}</p>}
                       </div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{t.catering.formSection.email}</label>
-                        <input name="email" type="email" className={`w-full bg-black/40 text-white border ${errors.email ? 'border-kabuki-red' : 'border-neutral-700'} focus:border-kabuki-red rounded-2xl px-5 py-4 outline-none transition-all shadow-inner`} value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+                        <input name="email" type="email" autoComplete="email" className={`w-full bg-black/40 text-white border ${errors.email ? 'border-kabuki-red' : 'border-neutral-700'} focus:border-kabuki-red rounded-2xl px-5 py-4 outline-none transition-all shadow-inner`} value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
                         {errors.email && <p className="text-kabuki-red text-[9px] font-bold uppercase mt-1">{errors.email}</p>}
                       </div>
                     </div>
@@ -216,13 +216,14 @@ export default function ContactPage() {
                         </div>
                         <div className="space-y-2">
                             <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Téléphone</label>
-                            <input name="phone" type="tel" className="w-full bg-black/40 text-white border border-neutral-700 focus:border-kabuki-red rounded-2xl px-5 py-4 outline-none transition shadow-inner" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+                            <input name="phone" type="tel" autoComplete="tel" className="w-full bg-black/40 text-white border border-neutral-700 focus:border-kabuki-red rounded-2xl px-5 py-4 outline-none transition shadow-inner" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
                         </div>
                     </div>
 
                     <AnimatePresence>
                       {formData.subject === "Traiteur" && (
-                        <motion.div 
+                        // ✅ CORRECTIF : m.div
+                        <m.div 
                           initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
                           className="grid md:grid-cols-2 gap-6 overflow-hidden"
                         >
@@ -238,7 +239,7 @@ export default function ContactPage() {
                             </label>
                             <input name="guests" type="number" placeholder="Ex: 25" className="w-full bg-black/40 text-white border border-kabuki-red/30 focus:border-kabuki-red rounded-2xl px-5 py-4 outline-none transition" value={formData.guests} onChange={e => setFormData({...formData, guests: e.target.value})} />
                           </div>
-                        </motion.div>
+                        </m.div>
                       )}
                     </AnimatePresence>
 
@@ -248,12 +249,13 @@ export default function ContactPage() {
                       {errors.message && <p className="text-kabuki-red text-[9px] font-bold uppercase mt-1">{errors.message}</p>}
                     </div>
 
-                    <button type="submit" disabled={isSubmitting} className="w-full bg-kabuki-red text-white font-bold py-5 rounded-2xl hover:bg-red-700 transition shadow-xl uppercase tracking-[0.2em] flex items-center justify-center gap-3 disabled:opacity-50">
+                    <button type="submit" disabled={isSubmitting} className="w-full bg-kabuki-red text-white font-bold py-5 rounded-2xl hover:bg-red-700 transition shadow-xl uppercase tracking-[0.2em] flex items-center justify-center gap-3 disabled:opacity-50 active:scale-95">
                       {isSubmitting ? <Loader2 className="animate-spin" /> : <><Send size={18}/> {t.catering.formSection.submit}</>}
                     </button>
-                  </motion.form>
+                  </m.form>
                 ) : (
-                  <motion.div 
+                  // ✅ CORRECTIF : m.div
+                  <m.div 
                     initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
                     className="py-20 text-center space-y-6"
                   >
@@ -266,7 +268,7 @@ export default function ContactPage() {
                             Arigato ! Notre équipe Kabuki reviendra vers vous très rapidement.
                         </p>
                     </div>
-                  </motion.div>
+                  </m.div>
                 )}
               </AnimatePresence>
             </div>
@@ -277,6 +279,7 @@ export default function ContactPage() {
       <div className="w-full h-[450px] bg-neutral-800 border-t border-neutral-800 relative">
         <iframe 
           src={mapEmbedUrl}
+          title="Plan d'accès Kabuki Sushi"
           width="100%" 
           height="100%" 
           style={{border:0}} 

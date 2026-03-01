@@ -8,17 +8,12 @@ const nextConfig: NextConfig = {
         source: '/(:path*)',
         headers: [
           {
-            key: 'Content-Security-Policy',
-            // unsafe-eval est requis pour Next.js (Framer Motion / Turbopack)
-            // connect-src permet de communiquer avec les APIs de Stripe et Supabase
-            // frame-src est requis pour l'iFrame sécurisée de paiement Stripe
-            value: "default-src 'self'; " +
-                   "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com https://checkout.stripe.com https://*.supabase.co; " +
-                   "connect-src 'self' https://api.stripe.com https://*.supabase.co; " +
-                   "frame-src 'self' https://js.stripe.com; " +
-                   "img-src 'self' data: https://*.supabase.co; " +
-                   "style-src 'self' 'unsafe-inline'; " +
-                   "object-src 'none';"
+           key: 'Content-Security-Policy',
+  value: "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com https://*.supabase.co; " +
+         "connect-src 'self' https://api.stripe.com https://*.supabase.co; " +
+         "frame-src 'self' https://js.stripe.com; " +
+         "img-src 'self' data: https://*.supabase.co; " +
+         "style-src 'self' 'unsafe-inline';"
           },
         ],
       },

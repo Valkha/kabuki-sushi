@@ -7,35 +7,30 @@ import {
   UtensilsCrossed, 
   LogOut,
   ArrowLeft,
-  ShoppingBag 
+  ShoppingBag,
+  Truck // ✅ Ajout de l'icône pour le livreur
 } from "lucide-react";
 import { supabase } from "@/utils/supabase";
-
-// Import du composant WhatsApp
-import WhatsAppButton from "@/components/WhatsAppButton";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { lang, t } = useTranslation();
 
-  // ✅ FIX DÉCONNEXION : On redirige vers la route localisée (ex: /fr/login)
   const handleLogout = async () => {
     await supabase.auth.signOut();
     localStorage.clear();
     sessionStorage.clear();
-    // On force la redirection vers le login avec la langue actuelle
     window.location.href = `/${lang}/login?logout=true`;
   };
 
-  // On ajuste isActive pour que "Commandes" ne soit pas actif quand on est dans un sous-menu
   const isActive = (path: string) => {
     if (path.endsWith('/admin')) {
-        return pathname === path; // Match exact pour le Dashboard
+        return pathname === path; 
     }
     return pathname === path || pathname?.startsWith(path + "/");
   };
 
-  // ✅ Liste nettoyée : Uniquement Commandes et Carte
+  // ✅ Ajout de l'onglet Livreur ici
   const adminLinks = [
     { 
       name: "Commandes", 
@@ -47,6 +42,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       path: `/${lang}/admin/menu`, 
       icon: <UtensilsCrossed size={16} /> 
     },
+    { 
+      name: "Livreur", 
+      path: `/${lang}/admin/driver`, 
+      icon: <Truck size={16} /> 
+    },
   ];
 
   return (
@@ -57,7 +57,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="container mx-auto px-6 h-20 flex justify-between items-center">
           
           <div className="flex items-center gap-8">
-            {/* Logo et Retour Site localisé */}
             <div className="flex items-center gap-4">
               <div className="w-8 h-8 bg-kabuki-red rounded-lg flex items-center justify-center font-bold text-white shadow-lg shadow-red-900/20">
                 K
@@ -83,13 +82,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   }`}
                 >
                   {link.icon}
-                  <span className="uppercase tracking-[0.15em]">{link.name}</span>
+                  <span className="uppercase tracking-[0.15em] hidden sm:inline">{link.name}</span>
                 </Link>
               ))}
             </nav>
           </div>
 
-          {/* Bouton Déconnexion */}
           <button 
             onClick={handleLogout}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-bold text-gray-500 hover:text-white hover:bg-red-600/10 border border-transparent hover:border-red-600/20 transition-all uppercase tracking-widest group"
@@ -102,16 +100,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* --- ZONE DE CONTENU --- */}
       <main className="relative">
-        {/* Subtile texture de fond */}
         <div className="fixed inset-0 bg-[url('/pattern-kimono.png')] opacity-[0.03] pointer-events-none"></div>
         
         <div className="max-w-7xl mx-auto relative z-10">
           {children}
         </div>
       </main>
-
-      {/* WhatsApp Button */}
-      <WhatsAppButton />
 
     </div>
   );

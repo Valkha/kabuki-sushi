@@ -63,7 +63,7 @@ export default function TraiteurPage() {
 
   const experienceImages = [
     "/images/traiteur-chef.jpg",
-    "/images/traiteur-frais.jpg",
+    "/images/plateau-sushi.png",
     "/images/plateau-sushi-1.jpg"
   ];
 

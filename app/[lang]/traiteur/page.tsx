@@ -4,9 +4,10 @@ import { useState } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { useTranslation } from "@/context/LanguageContext"; 
-import { z } from "zod"; // ✅ Validation de sécurité
+import { z } from "zod";
+// ✅ CORRECTION : 'Users' supprimé car inutilisé
+import { Camera, CheckCircle2, Utensils, Star } from "lucide-react"; 
 
-// ✅ Définition du schéma de validation (Anti-injection et formatage)
 const cateringSchema = z.object({
   name: z.string().min(2, "Le nom est trop court").max(50),
   email: z.string().email("Format d'email invalide"),
@@ -28,13 +29,11 @@ export default function TraiteurPage() {
   const { t } = useTranslation(); 
   
   const [formStatus, setFormStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
-  const [errors, setErrors] = useState<Record<string, string>>({}); // ✅ Gestion des erreurs UI
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setErrors({}); // Reset des erreurs précédentes
-    
-    // Extraction des données via FormData
+    setErrors({});
     const formData = new FormData(e.currentTarget);
     const data = {
       name: formData.get("name"),
@@ -44,13 +43,10 @@ export default function TraiteurPage() {
       vision: formData.get("vision"),
     };
 
-    // ✅ Validation avec Zod
     const result = cateringSchema.safeParse(data);
-
     if (!result.success) {
       const formattedErrors: Record<string, string> = {};
       result.error.issues.forEach((issue) => {
-        // ✅ Correction TypeScript : Conversion explicite du path en string
         const fieldName = String(issue.path[0]);
         formattedErrors[fieldName] = issue.message;
       });
@@ -59,8 +55,6 @@ export default function TraiteurPage() {
     }
 
     setFormStatus("submitting");
-
-    // Simulation d'envoi sécurisé
     setTimeout(() => {
       setFormStatus("success");
       window.location.href = "#devis"; 
@@ -73,53 +67,59 @@ export default function TraiteurPage() {
     "/images/plateau-sushi-1.jpg"
   ];
 
+  const galleryImages = [
+    "/images/catering-1.jpg",
+    "/images/catering-2.jpg",
+    "/images/catering-3.jpg",
+    "/images/catering-4.jpg",
+    "/images/catering-5.jpg",
+    "/images/catering-6.jpg",
+  ];
+
   return (
-    <div className="bg-white min-h-screen pb-20">
+    <div className="bg-white min-h-screen pb-0">
       
       {/* --- HERO TRAITEUR --- */}
-      <section className="bg-kabuki-black text-white py-20 lg:py-32 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-1/3 h-full bg-kabuki-red/10 skew-x-12 transform translate-x-20"></div>
+      <section className="relative h-[80vh] flex items-center justify-center text-white overflow-hidden bg-kabuki-black">
+        <div className="absolute inset-0 z-0">
+            <Image 
+                src="/images/traiteur-hero-bg.jpg"
+                alt="Traiteur événementiel Kabuki"
+                fill
+                className="object-cover opacity-40 scale-105"
+                priority
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-kabuki-black/60 to-kabuki-black"></div>
+        </div>
         
-        <div className="container mx-auto px-6 relative z-10 flex flex-col md:flex-row items-center gap-12">
+        <div className="container mx-auto px-6 relative z-10 text-center max-w-4xl">
           <motion.div 
-            initial={{ opacity: 0, x: -50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8 }}
-            className="md:w-1/2 space-y-6"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1 }}
           >
-            <h1 className="text-4xl lg:text-6xl font-display font-bold uppercase leading-tight">
+            {/* ✅ CORRECTION : Apostrophe échappée avec &apos; */}
+            <span className="text-kabuki-red font-display font-bold uppercase tracking-[0.4em] text-sm mb-4 block">
+              Prestations d&apos;Exception
+            </span>
+            <h1 className="text-5xl lg:text-8xl font-display font-bold uppercase leading-tight mb-8">
               {t.catering.title.split(' ')[0]} <br/> 
               <span className="text-kabuki-red">
                 {t.catering.title.split(' ').slice(1).join(' ')}
               </span>
             </h1>
-            <p className="text-gray-300 text-lg">
-              {t.catering.subtitle} <br/>
-              {t.catering.desc}
+            <p className="text-gray-300 text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
+              {t.catering.subtitle}. {t.catering.desc}
             </p>
-            <a href="#devis" className="inline-block bg-white text-kabuki-black px-8 py-3 rounded-full font-bold hover:bg-kabuki-red hover:text-white transition shadow-lg hover:shadow-red-900/50">
+            <a href="#devis" className="inline-flex items-center gap-3 bg-kabuki-red text-white px-10 py-4 rounded-full font-bold hover:bg-white hover:text-kabuki-black transition-all transform hover:scale-105 shadow-xl">
               {t.catering.btnHero}
+              <Utensils size={18} />
             </a>
-          </motion.div>
-
-          <motion.div 
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="md:w-1/2 h-64 md:h-96 relative rounded-lg overflow-hidden shadow-2xl border border-gray-700 group"
-          >
-             <Image 
-                src="/images/traiteur-hero.jpg"
-                alt="Buffet Traiteur Kabuki"
-                fill
-                className="object-cover group-hover:scale-105 transition duration-700"
-             />
-             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none"></div>
           </motion.div>
         </div>
       </section>
 
-     {/* --- L'EXPÉRIENCE KABUKI --- */}
+      {/* --- L'EXPÉRIENCE KABUKI --- */}
       <section className="py-24 bg-neutral-900 text-white relative overflow-hidden">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 text-kabuki-red/5 text-[10rem] font-display font-bold whitespace-nowrap select-none z-0">
           KABUKI CATERING
@@ -152,18 +152,61 @@ export default function TraiteurPage() {
                 <div className={`relative h-[400px] md:h-[500px] rounded-2xl overflow-hidden shadow-2xl transition duration-500 border border-neutral-800 
                   ${index % 2 === 0 ? "md:-rotate-2 hover:rotate-0" : "order-1 md:order-2 md:rotate-2 hover:rotate-0"}`}
                 >
-                  <Image src={experienceImages[index]} alt={bloc.title} fill className="object-cover" />
+                  <Image src={experienceImages[index] || experienceImages[0]} alt={bloc.title} fill className="object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-t from-kabuki-black/80 via-transparent to-transparent"></div>
                 </div>
                 <div className={`space-y-6 ${index % 2 === 0 ? "md:pl-12" : "md:pr-12 order-2 md:order-1"}`}>
                   <div className="text-kabuki-red font-display text-2xl font-bold">{bloc.tag}</div>
                   <h3 className="text-3xl font-bold">{bloc.title}</h3>
                   <p className="text-gray-400 text-lg leading-relaxed">{bloc.desc}</p>
+                  <div className="flex items-center gap-4 text-sm text-gray-500 font-bold uppercase tracking-widest">
+                    <CheckCircle2 size={16} className="text-kabuki-red" /> Excellence Garantie
+                  </div>
                 </div>
               </motion.div>
             ))}
           </div>
         </div>
+      </section>
+
+      {/* --- SECTION GALERIE --- */}
+      <section className="py-24 bg-white">
+        <div className="container mx-auto px-6">
+            <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
+                <div className="max-w-2xl">
+                    <h2 className="text-4xl font-display font-bold uppercase text-kabuki-black mb-4">Notre Galerie Événementielle</h2>
+                    <p className="text-gray-500 italic">Découvrez nos dernières réalisations pour mariages, séminaires et soirées privées.</p>
+                </div>
+                <div className="flex items-center gap-2 text-kabuki-red font-bold uppercase text-xs tracking-widest">
+                    <Camera size={20} /> Instagram @kabukisushi
+                </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {galleryImages.map((img, i) => (
+                    <motion.div 
+                        key={i}
+                        whileHover={{ scale: 0.98 }}
+                        className={`relative h-64 md:h-80 rounded-xl overflow-hidden bg-gray-100 ${i === 1 ? 'md:col-span-2' : ''}`}
+                    >
+                        <Image src={img} alt={`Galerie Traiteur ${i}`} fill className="object-cover" />
+                    </motion.div>
+                ))}
+            </div>
+        </div>
+      </section>
+
+      {/* --- SECTION PARTENAIRES --- */}
+      <section className="py-16 bg-neutral-50 border-y border-neutral-200">
+          <div className="container mx-auto px-6">
+              <p className="text-center text-neutral-400 text-xs font-black uppercase tracking-[0.3em] mb-10">Ils nous font confiance pour leurs événements</p>
+              <div className="flex flex-wrap justify-center items-center gap-12 md:gap-24 opacity-40 grayscale hover:grayscale-0 transition-all duration-500">
+                  <Image src="/logos/partner-1.png" alt="Client" width={120} height={40} className="object-contain" />
+                  <Image src="/logos/partner-2.png" alt="Client" width={120} height={40} className="object-contain" />
+                  <Image src="/logos/partner-3.png" alt="Client" width={120} height={40} className="object-contain" />
+                  <Image src="/logos/partner-4.png" alt="Client" width={120} height={40} className="object-contain" />
+              </div>
+          </div>
       </section>
 
       {/* --- FORMULAIRE DEVIS --- */}
@@ -176,7 +219,7 @@ export default function TraiteurPage() {
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
-            className="bg-neutral-900/80 backdrop-blur-md p-10 md:p-16 rounded-3xl shadow-2xl border border-neutral-800"
+            className="bg-neutral-900/80 backdrop-blur-md p-10 md:p-16 rounded-[2.5rem] shadow-2xl border border-neutral-800"
           >
             {formStatus === "success" ? (
               <div className="text-center py-10 animate-fade-in-up">
@@ -189,7 +232,6 @@ export default function TraiteurPage() {
                     priority
                   />
                 </div>
-
                 <h2 className="text-3xl md:text-4xl font-display font-bold text-white mb-4">
                   {t.catering.formSection.successTitle}
                 </h2>
@@ -198,7 +240,7 @@ export default function TraiteurPage() {
                 </p>
                 <button 
                   onClick={() => setFormStatus("idle")}
-                  className="text-kabuki-red font-bold uppercase tracking-widest hover:text-white transition border-b border-kabuki-red pb-1"
+                  className="bg-kabuki-red text-white px-8 py-3 rounded-full font-bold uppercase tracking-widest hover:bg-white hover:text-kabuki-red transition-all"
                 >
                   {t.catering.formSection.successBtn}
                 </button>
@@ -220,8 +262,8 @@ export default function TraiteurPage() {
                       <input 
                         name="name" 
                         type="text" 
-                        className={`w-full bg-neutral-800 text-white border-b-2 ${errors.name ? 'border-kabuki-red' : 'border-neutral-700'} focus:border-kabuki-red px-4 py-3 rounded-t-lg outline-none transition-all placeholder-gray-500`} 
-                        placeholder="..." 
+                        className={`w-full bg-neutral-800/50 text-white border-b-2 ${errors.name ? 'border-kabuki-red' : 'border-neutral-700'} focus:border-kabuki-red px-4 py-3 rounded-t-lg outline-none transition-all placeholder-gray-500`} 
+                        placeholder="Votre nom..." 
                       />
                       {errors.name && <p className="text-kabuki-red text-[10px] font-bold uppercase mt-1">{errors.name}</p>}
                     </div>
@@ -230,8 +272,8 @@ export default function TraiteurPage() {
                       <input 
                         name="email" 
                         type="email" 
-                        className={`w-full bg-neutral-800 text-white border-b-2 ${errors.email ? 'border-kabuki-red' : 'border-neutral-700'} focus:border-kabuki-red px-4 py-3 rounded-t-lg outline-none transition-all placeholder-gray-500`} 
-                        placeholder="..." 
+                        className={`w-full bg-neutral-800/50 text-white border-b-2 ${errors.email ? 'border-kabuki-red' : 'border-neutral-700'} focus:border-kabuki-red px-4 py-3 rounded-t-lg outline-none transition-all placeholder-gray-500`} 
+                        placeholder="Email de contact..." 
                       />
                       {errors.email && <p className="text-kabuki-red text-[10px] font-bold uppercase mt-1">{errors.email}</p>}
                     </div>
@@ -240,9 +282,9 @@ export default function TraiteurPage() {
                   <div className="grid md:grid-cols-2 gap-8">
                     <div className="space-y-2">
                       <label className="text-sm font-bold text-kabuki-red tracking-widest uppercase">{t.catering.formSection.type}</label>
-                      <select name="type" className="w-full bg-neutral-800 text-white border-b-2 border-neutral-700 focus:border-kabuki-red px-4 py-3 rounded-t-lg outline-none appearance-none cursor-pointer">
+                      <select name="type" className="w-full bg-neutral-800/50 text-white border-b-2 border-neutral-700 focus:border-kabuki-red px-4 py-3 rounded-t-lg outline-none appearance-none cursor-pointer">
                         {t.catering.formSection.types.map((type: string) => (
-                          <option key={type} value={type}>{type}</option>
+                          <option key={type} value={type} className="bg-neutral-900">{type}</option>
                         ))}
                       </select>
                     </div>
@@ -251,8 +293,8 @@ export default function TraiteurPage() {
                       <input 
                         name="guests" 
                         type="number" 
-                        className={`w-full bg-neutral-800 text-white border-b-2 ${errors.guests ? 'border-kabuki-red' : 'border-neutral-700'} focus:border-kabuki-red px-4 py-3 rounded-t-lg outline-none transition-all placeholder-gray-500`} 
-                        placeholder="Ex: 80" 
+                        className={`w-full bg-neutral-800/50 text-white border-b-2 ${errors.guests ? 'border-kabuki-red' : 'border-neutral-700'} focus:border-kabuki-red px-4 py-3 rounded-t-lg outline-none transition-all placeholder-gray-500`} 
+                        placeholder="Nombre d'invités (ex: 50)" 
                       />
                       {errors.guests && <p className="text-kabuki-red text-[10px] font-bold uppercase mt-1">{errors.guests}</p>}
                     </div>
@@ -263,7 +305,7 @@ export default function TraiteurPage() {
                     <textarea 
                       name="vision" 
                       rows={5} 
-                      className={`w-full bg-neutral-800 text-white border-b-2 ${errors.vision ? 'border-kabuki-red' : 'border-neutral-700'} focus:border-kabuki-red px-4 py-3 rounded-t-lg outline-none transition-all placeholder-gray-500 resize-none`} 
+                      className={`w-full bg-neutral-800/50 text-white border-b-2 ${errors.vision ? 'border-kabuki-red' : 'border-neutral-700'} focus:border-kabuki-red px-4 py-3 rounded-t-lg outline-none transition-all placeholder-gray-500 resize-none`} 
                       placeholder={t.catering.formSection.visionPlaceholder}
                     ></textarea>
                     {errors.vision && <p className="text-kabuki-red text-[10px] font-bold uppercase mt-1">{errors.vision}</p>}
@@ -273,11 +315,11 @@ export default function TraiteurPage() {
                     <button 
                       type="submit" 
                       disabled={formStatus === "submitting"}
-                      className="group relative inline-flex items-center justify-center overflow-hidden rounded-full bg-kabuki-red px-12 py-4 font-bold text-white transition-all hover:scale-105 box-shadow-xl hover:shadow-red-900/50 disabled:opacity-50"
+                      className="group relative inline-flex items-center justify-center overflow-hidden rounded-full bg-kabuki-red px-16 py-5 font-bold text-white transition-all hover:scale-105 shadow-xl hover:shadow-red-900/50 disabled:opacity-50"
                     >
                       {formStatus === "submitting" ? (
-                        <span className="flex items-center">
-                           <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <span className="flex items-center gap-3">
+                           <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                            </svg>
@@ -294,6 +336,23 @@ export default function TraiteurPage() {
           </motion.div>
         </div>
       </section>
+
+      {/* --- FOOTER CTA --- */}
+      <footer className="bg-kabuki-black py-12 border-t border-neutral-900 text-center">
+          <div className="container mx-auto px-6">
+              <div className="flex flex-col md:flex-row justify-center items-center gap-8 opacity-60">
+                  <div className="flex items-center gap-2 text-white text-xs font-bold uppercase tracking-widest">
+                      <Star size={14} className="text-kabuki-red" /> Ingrédients Ultra-Frais
+                  </div>
+                  <div className="flex items-center gap-2 text-white text-xs font-bold uppercase tracking-widest">
+                      <Star size={14} className="text-kabuki-red" /> Chefs Maîtres Sushis
+                  </div>
+                  <div className="flex items-center gap-2 text-white text-xs font-bold uppercase tracking-widest">
+                      <Star size={14} className="text-kabuki-red" /> Service Clé en Main
+                  </div>
+              </div>
+          </div>
+      </footer>
 
     </div>
   );

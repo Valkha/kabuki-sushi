@@ -98,10 +98,7 @@ export default function ProductModal({ item, onClose }: ProductModalProps) {
               src={item.image_url} 
               alt={name} 
               fill
-              // ✅ CORRECTIF ANTI-FLOU : Qualité maximale pour la vue détaillée
               quality={95}
-              // ✅ CORRECTIF ANTI-FLOU : sizes généreux pour les écrans Retina (2x/3x)
-              // On demande une résolution de ~1200px même si l'affichage réel est plus petit
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 1200px"
               className="object-contain p-4 md:p-10 transition-transform duration-700 group-hover:scale-105"
               priority
@@ -132,16 +129,16 @@ export default function ProductModal({ item, onClose }: ProductModalProps) {
             </div>
           </div>
           
-          <div className="mb-12">
+          <div className="mb-8">
             <h4 className="text-neutral-600 text-[10px] uppercase font-black tracking-[0.3em] mb-4">Description de la création</h4>
             <p className="text-neutral-400 text-sm md:text-lg leading-relaxed italic font-light max-w-2xl">
               {desc || "L'excellence du sushi Kabuki, préparée avec passion et précision par nos maîtres sushis."}
             </p>
           </div>
 
-          {/* SÉLECTEUR & ACTION */}
-          <div className="mt-auto flex flex-col sm:flex-row gap-4 items-center">
-            <div className="flex items-center bg-white/5 border border-neutral-800 rounded-2xl h-16 w-full sm:w-auto overflow-hidden">
+          {/* ✅ CORRECTIF : Ajout de shrink-0 et pt-6 pour éviter l'écrasement du bouton visible sur image_fc8d1c.jpg */}
+          <div className="mt-auto pt-6 flex flex-col sm:flex-row gap-4 items-center shrink-0">
+            <div className="flex items-center bg-white/5 border border-neutral-800 rounded-2xl h-16 w-full sm:w-auto overflow-hidden shrink-0">
               <button 
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
                 className="w-16 h-full flex items-center justify-center text-neutral-400 hover:text-white transition-colors active:bg-neutral-800"
@@ -161,7 +158,7 @@ export default function ProductModal({ item, onClose }: ProductModalProps) {
 
             <button 
               onClick={handleAddToCart}
-              className="flex-1 w-full bg-kabuki-red hover:bg-red-700 text-white font-bold h-16 rounded-2xl uppercase tracking-[0.2em] text-[11px] transition-all active:scale-[0.98] shadow-2xl shadow-red-900/20 flex items-center justify-center gap-4"
+              className="flex-1 w-full bg-kabuki-red hover:bg-red-700 text-white font-bold h-16 rounded-2xl uppercase tracking-[0.2em] text-[11px] transition-all active:scale-[0.98] shadow-2xl shadow-red-900/20 flex items-center justify-center gap-4 shrink-0"
             >
               <ShoppingCart size={20} />
               <span>Ajouter • {(item.price * quantity).toFixed(2)} CHF</span>

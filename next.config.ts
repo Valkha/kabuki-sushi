@@ -7,7 +7,6 @@ const nextConfig: NextConfig = {
       {
         source: '/(.*)',
         headers: [
-          // ✅ AMÉLIORÉ : ajout des domaines manquants (Resend, maps pour livraison)
           {
             key: 'Content-Security-Policy',
             value: [
@@ -17,44 +16,34 @@ const nextConfig: NextConfig = {
               "img-src 'self' data: blob: https://*.supabase.co",
               "style-src 'self' 'unsafe-inline'",
               "font-src 'self' data:",
-              "object-src 'none'",         // Bloque Flash et plugins obsolètes
-              "base-uri 'self'",            // Empêche l'injection de balise <base>
-              "form-action 'self'",         // Les formulaires ne postent que sur votre domaine
+              "object-src 'none'",
+              "base-uri 'self'",
+              "form-action 'self'",
             ].join('; ')
           },
-
-          // 🆕 Empêche votre site d'être intégré dans un iframe (clickjacking)
           {
             key: 'X-Frame-Options',
             value: 'DENY',
           },
-
-          // 🆕 Empêche le navigateur de deviner le type MIME (injection de scripts)
           {
             key: 'X-Content-Type-Options',
             value: 'nosniff',
           },
-
-          // 🆕 Contrôle ce qui est envoyé dans le header Referer
           {
             key: 'Referrer-Policy',
             value: 'strict-origin-when-cross-origin',
           },
-
-          // 🆕 Désactive les APIs navigateur non utilisées
           {
             key: 'Permissions-Policy',
             value: [
-              'camera=()',           // Pas de caméra
-              'microphone=()',       // Pas de micro
-              'geolocation=(self)', // GPS uniquement sur votre domaine (livraison)
-              'payment=(self https://js.stripe.com)', // Paiement uniquement via Stripe
+              'camera=()',
+              'microphone=()',
+              'geolocation=(self)',
+              'payment=(self https://js.stripe.com)',
             ].join(', ')
           },
         ],
       },
-
-      // ✅ Le webhook ne doit jamais être mis en cache
       {
         source: '/api/webhook',
         headers: [
@@ -94,38 +83,21 @@ const nextConfig: NextConfig = {
 };
 
 export default withSentryConfig(nextConfig, {
-  // For all available options, see:
-  // https://www.npmjs.com/package/@sentry/webpack-plugin#options
-
   org: "valkha",
-
   project: "javascript-nextjs",
-
-  // Only print logs for uploading source maps in CI
   silent: !process.env.CI,
-
-  // For all available options, see:
-  // https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
-
-  // Upload a larger set of source maps for prettier stack traces (increases build time)
   widenClientFileUpload: true,
-
-  // Route browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers.
   tunnelRoute: "/monitoring",
-
-  // 🚀 LE CORRECTIF EST ICI : On interdit à Sentry d'alourdir le Middleware
-  autoInstrumentMiddleware: false,
   
-  // 🚀 BONUS : Nouvelle syntaxe pour cacher les source maps et alléger le build côté Vercel
   sourcemaps: {
     disable: true,
   },
 
   webpack: {
-    // Enables automatic instrumentation of Vercel Cron Monitors.
+    // 🚀 LE VOILÀ ! Déplacé ici comme Sentry le demande
+    autoInstrumentMiddleware: false,
+    
     automaticVercelMonitors: true,
-
-    // Tree-shaking options for reducing bundle size
     treeshake: {
       removeDebugLogging: true,
     },

@@ -2,12 +2,11 @@
 
 import { useEffect, useState, useMemo, useCallback, memo } from "react";
 import Image from "next/image";
-import { m, AnimatePresence } from "framer-motion"; 
+import { m, AnimatePresence, Variants } from "framer-motion"; 
 import { Search, Info, Plus, Minus } from "lucide-react";
 import Reveal from "@/components/Reveal";
 import { useTranslation } from "@/context/LanguageContext";
 import { supabase } from "@/utils/supabase";
-import PageLoader from "@/components/PageLoader";
 import ProductModal from "@/components/ProductModal";
 import { useCart, MenuItem as ContextMenuItem } from "@/context/CartContext";
 
@@ -39,11 +38,51 @@ const shimmer = (w: number, h: number) => `
 const toBase64 = (str: string) =>
   typeof window === 'undefined' ? Buffer.from(str).toString('base64') : window.btoa(str);
 
+// --- COMPOSANT SKELETON ---
+const SkeletonCard = () => (
+  <div className="bg-neutral-900 rounded-xl overflow-hidden border border-neutral-800 animate-pulse h-full">
+    <div className="aspect-square bg-neutral-800" />
+    <div className="p-3 space-y-2">
+      <div className="h-3 bg-neutral-800 rounded w-3/4" />
+      <div className="h-2 bg-neutral-800 rounded w-1/2" />
+      <div className="pt-4 flex justify-between">
+        <div className="h-4 bg-neutral-800 rounded w-12" />
+        <div className="h-6 bg-neutral-800 rounded-full w-6" />
+      </div>
+    </div>
+  </div>
+);
+
+// --- ✅ CORRECTION TYPESCRIPT : Variants typés explicitement ---
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05,
+    },
+  },
+};
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 15 },
+  show: { 
+    opacity: 1, 
+    y: 0, 
+    transition: { 
+      duration: 0.4, 
+      ease: "easeOut" 
+    } 
+  },
+};
+
 // --- COMPOSANT CARTE MÉMOÏSÉ ---
 const MenuItemCard = memo(({ item, onClick }: { item: MenuItem; onClick: (item: MenuItem) => void }) => {
   const { lang } = useTranslation();
   const { items, addToCart, updateQuantity, removeFromCart } = useCart();
   const [imgError, setImgError] = useState(false);
+  // ✅ NOUVEAU : État pour le fondu de l'image
+  const [isImageLoaded, setIsImageLoaded] = useState(false);
 
   const cartItem = items.find((i) => i.id === item.id);
   const quantity = cartItem ? cartItem.quantity : 0;
@@ -78,11 +117,8 @@ const MenuItemCard = memo(({ item, onClick }: { item: MenuItem; onClick: (item: 
 
   return (
     <m.div 
+      variants={itemVariants}
       layout="position"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.2 }}
       onClick={() => onClick(item)}
       style={{ willChange: "transform, opacity" }}
       className="bg-neutral-800 rounded-xl shadow-lg overflow-hidden hover:border-kabuki-red transition-all duration-300 group border border-neutral-700 flex flex-col h-full cursor-pointer relative"
@@ -102,21 +138,36 @@ const MenuItemCard = memo(({ item, onClick }: { item: MenuItem; onClick: (item: 
         </AnimatePresence>
 
         {!imgError && item.image_url ? (
-          <Image 
-            src={item.image_url}
-            alt={displayName}
-            fill
-            // ✅ CORRECTIF ANTI-FLOU : Qualité augmentée pour le piqué
-            quality={85}
-            // ✅ CORRECTIF ANTI-FLOU : 'sizes' optimisé pour Retina (DPR 2x/3x)
-            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-            className="object-cover transition-transform duration-500 group-hover:scale-105"
-            placeholder="blur"
-            blurDataURL={`data:image/svg+xml;base64,${toBase64(shimmer(400, 400))}`}
-            priority={item.id < 1008} 
-            fetchPriority={item.id < 1008 ? "high" : "low"}
-            onError={() => setImgError(true)}
-          />
+          <>
+            {/* ✅ CORRECTION : Motion div pour le fondu progressif de l'image */}
+            <m.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: isImageLoaded ? 1 : 0 }}
+              transition={{ duration: 0.5 }}
+              className="w-full h-full"
+            >
+              <Image 
+                src={item.image_url}
+                alt={displayName}
+                fill
+                quality={85}
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+                className={`object-cover transition-transform duration-500 group-hover:scale-105 ${
+                  isImageLoaded ? "opacity-100" : "opacity-0"
+                }`}
+                onLoad={() => setIsImageLoaded(true)}
+                placeholder="blur"
+                blurDataURL={`data:image/svg+xml;base64,${toBase64(shimmer(400, 400))}`}
+                priority={item.id < 1008} 
+                fetchPriority={item.id < 1008 ? "high" : "low"}
+                onError={() => setImgError(true)}
+              />
+            </m.div>
+            {/* Skeleton temporaire pendant que l'image décode */}
+            {!isImageLoaded && (
+              <div className="absolute inset-0 bg-neutral-900 animate-pulse z-10" />
+            )}
+          </>
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-neutral-800 italic text-neutral-500 text-[10px] uppercase tracking-tighter">
             KABUKI SUSHI
@@ -223,8 +274,6 @@ export default function MenuClient() {
     setSelectedProduct(item);
   }, []);
 
-  if (loading) return <PageLoader />;
-
   return (
     <div className="bg-[#080808] min-h-screen pb-32 pt-24 relative">
       <div className="bg-black text-white py-12 md:py-16 text-center relative overflow-hidden">
@@ -271,15 +320,25 @@ export default function MenuClient() {
       </div>
 
       <div className="container mx-auto px-4">
-        <m.div layout className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6">
+        <m.div 
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
+          layout 
+          className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6"
+        >
           <AnimatePresence mode="popLayout">
-            {filteredItems.map((item) => (
-              <MenuItemCard 
-                key={item.id} 
-                item={item} 
-                onClick={handleOpenModal} 
-              />
-            ))}
+            {loading ? (
+              [...Array(10)].map((_, i) => <SkeletonCard key={`skeleton-${i}`} />)
+            ) : (
+              filteredItems.map((item) => (
+                <MenuItemCard 
+                  key={item.id} 
+                  item={item} 
+                  onClick={handleOpenModal} 
+                />
+              ))
+            )}
           </AnimatePresence>
         </m.div>
       </div>

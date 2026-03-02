@@ -9,23 +9,21 @@ import ActiveOrderButton from "@/components/ActiveOrderButton";
 const inter = Inter({ 
   subsets: ["latin"], 
   variable: "--font-inter",
-  display: 'swap', 
+  display: 'swap', // ✅ Parfait pour le LCP
 });
 
 const oswald = Oswald({ 
   subsets: ["latin"], 
   variable: "--font-oswald",
-  display: 'swap',
+  display: 'swap', // ✅ Parfait pour le LCP
   weight: ['400', '700'], 
 });
 
-// ✅ 1. params est maintenant typé comme une Promise
 export async function generateMetadata({ 
   params 
 }: { 
   params: Promise<{ lang: string }> 
 }): Promise<Metadata> {
-  // ✅ On "attend" (await) la résolution des paramètres
   const resolvedParams = await params;
   const lang = resolvedParams.lang || 'fr';
   const siteUrl = 'https://kabuki-sushi.ch';
@@ -60,15 +58,13 @@ export async function generateMetadata({
   };
 }
 
-// ✅ 2. Le composant RootLayout devient une fonction "async"
 export default async function RootLayout({
   children,
   params,
 }: Readonly<{
   children: React.ReactNode;
-  params: Promise<{ lang: string }>; // ✅ Typage en Promise
+  params: Promise<{ lang: string }>;
 }>) {
-  // ✅ On "attend" les paramètres ici aussi
   const resolvedParams = await params;
   const lang = resolvedParams.lang || 'fr';
 

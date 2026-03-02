@@ -28,12 +28,13 @@ export default function Footer() {
           
           {/* COLONNE 1 : LOGO & RÉSEAUX */}
           <div className="space-y-6">
-            <Link href={`/${lang}`} className="inline-block w-32" aria-label="Retour à l'accueil"> {/* ✅ FIX A11Y */}
+            <Link href={`/${lang}`} className="inline-block w-32" aria-label="Retour à l'accueil">
               <Image 
                 src="/images/logo.png" 
                 alt="Kabuki Sushi Logo" 
                 width={150} 
                 height={150} 
+                sizes="(max-width: 768px) 120px, 150px" // ✅ FIX LCP : Indique la taille réelle rendue
                 className="w-full h-auto"
               />
             </Link>
@@ -76,7 +77,7 @@ export default function Footer() {
             </h3>
             <ul className="space-y-4 text-gray-400">
               <li className="flex items-start group">
-                <MapPin size={18} className="text-red-400 mr-3 shrink-0" /> {/* ✅ FIX A11Y */}
+                <MapPin size={18} className="text-red-400 mr-3 shrink-0" />
                 <a 
                   href="https://maps.google.com/?q=Kabuki+Sushi+1+Boulevard+de+la+Tour+1205+Genève" 
                   target="_blank" 
@@ -87,7 +88,7 @@ export default function Footer() {
                 </a>
               </li>
               <li className="flex items-center group">
-                <Phone size={18} className="text-red-400 mr-3 shrink-0" /> {/* ✅ FIX A11Y */}
+                <Phone size={18} className="text-red-400 mr-3 shrink-0" />
                 <a href="tel:+41786041542" className="hover:text-white transition font-bold tracking-tighter">
                   +41 78 604 15 42
                 </a> 
@@ -121,7 +122,6 @@ export default function Footer() {
                 </div>
               </li>
 
-              {/* ✅ FIX A11Y : text-red-400 remplace text-kabuki-red pour un meilleur contraste */}
               <li className="flex justify-between border-t border-neutral-800 pt-3 text-red-400 font-bold">
                 <span>{days.mon}</span>
                 <span>{days.closed}</span>
@@ -132,13 +132,12 @@ export default function Footer() {
         </div>
 
         {/* COPYRIGHT & LÉGAL */}
-        {/* ✅ FIX A11Y : text-gray-400 au lieu de text-gray-500 */}
         <div className="border-t border-neutral-800 pt-8 flex flex-col md:flex-row justify-between items-center text-[10px] text-gray-400 uppercase tracking-widest">
           <p>© {new Date().getFullYear()} Kabuki Sushi Genève. All rights reserved.</p>
           <div className="flex space-x-6 mt-4 md:mt-0">
             <Link 
               href={`/${lang}/mentions-legales`} 
-              className="text-gray-300 hover:text-white transition font-bold" /* ✅ FIX A11Y : texte éclairci */
+              className="text-gray-300 hover:text-white transition font-bold"
             >
               {lang === "fr" ? "Mentions Légales" : lang === "en" ? "Legal Notice" : "Aviso Legal"}
             </Link>

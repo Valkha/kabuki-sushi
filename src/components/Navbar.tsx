@@ -71,6 +71,7 @@ export default function Navbar({ onOpenCart }: NavbarProps) {
             alt="Kabuki Logo" 
             width={120} 
             height={120}
+            sizes="(max-width: 768px) 96px, 120px" // ✅ FIX LCP : Indique la taille réelle rendue
             className="w-full h-auto object-contain"
             priority
           />
@@ -140,7 +141,7 @@ export default function Navbar({ onOpenCart }: NavbarProps) {
         <div className="flex md:hidden items-center space-x-6">
           <button 
             onClick={onOpenCart} 
-            aria-label={`Ouvrir le panier, ${totalItems} articles`} // ✅ FIX A11Y: Sécurité supplémentaire
+            aria-label={`Ouvrir le panier, ${totalItems} articles`}
             className="relative p-2 z-50 active:scale-90 transition-transform"
           >
             <ShoppingCart size={24} className="text-white" />
@@ -161,8 +162,8 @@ export default function Navbar({ onOpenCart }: NavbarProps) {
           <button 
             onClick={() => setIsOpen(!isOpen)} 
             className="z-50 w-8 h-10 flex flex-col justify-center items-center"
-            aria-label={isOpen ? "Fermer le menu" : "Ouvrir le menu"} // ✅ FIX A11Y: Indispensable pour Lighthouse
-            aria-expanded={isOpen} // ✅ FIX A11Y: Indique l'état du menu
+            aria-label={isOpen ? "Fermer le menu" : "Ouvrir le menu"}
+            aria-expanded={isOpen}
           >
             <m.span 
               animate={isOpen ? { rotate: 45, y: 8 } : { rotate: 0, y: 0 }}

@@ -1,4 +1,4 @@
-// import { withSentryConfig } from '@sentry/nextjs'; <-- On désactive Sentry temporairement
+import { withSentryConfig } from '@sentry/nextjs';
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
@@ -8,14 +8,19 @@ const nextConfig: NextConfig = {
         source: '/(.*)',
         headers: [
           {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=63072000; includeSubDomains; preload',
+          },
+          {
             key: 'Content-Security-Policy',
             value: [
+              "default-src 'self'",
               "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com https://*.supabase.co",
-              "connect-src 'self' https://api.stripe.com https://*.supabase.co https://api.resend.com",
+              "connect-src 'self' https://api.stripe.com https://*.supabase.co https://api.resend.com https://*.sentry.io",
               "frame-src 'self' https://js.stripe.com",
               "img-src 'self' data: blob: https://*.supabase.co",
-              "style-src 'self' 'unsafe-inline'",
-              "font-src 'self' data:",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com", // Autorise le CSS de Google Fonts
+              "font-src 'self' data: https://fonts.gstatic.com", // Autorise les fichiers de police Google Fonts
               "object-src 'none'",
               "base-uri 'self'",
               "form-action 'self'",
@@ -39,8 +44,12 @@ const nextConfig: NextConfig = {
               'camera=()',
               'microphone=()',
               'geolocation=(self)',
-              'payment=(self https://js.stripe.com)',
+              'payment=(self "https://js.stripe.com")', // Correction : guillemets autour du domaine externe
             ].join(', ')
+          },
+          {
+            key: 'Cross-Origin-Opener-Policy', // Ajout de la protection d'isolation demandée par Lighthouse
+            value: 'same-origin',
           },
         ],
       },
@@ -82,5 +91,8 @@ const nextConfig: NextConfig = {
   },
 };
 
-// 🚀 LE TEST NUCLÉAIRE : On exporte la configuration Next.js pure, SANS SENTRY !
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  sourcemaps: {
+    deleteSourcemapsAfterUpload: true,
+  },
+});

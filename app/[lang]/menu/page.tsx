@@ -1,16 +1,14 @@
 import { Metadata } from "next";
 import MenuClient from "./MenuClient";
 
-// ✅ On s'assure que params est bien une Promise
 type Props = {
   params: Promise<{ lang: string }>;
 };
 
-// ✅ On ajoute await devant params
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const resolvedParams = await params;
   const lang = resolvedParams.lang || "fr";
-  
+
   const titles: Record<string, string> = {
     fr: "Notre Carte | 97 Créations Originales",
     en: "Our Menu | 97 Original Sushi Creations",

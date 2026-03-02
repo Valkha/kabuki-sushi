@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useTranslation } from "@/context/LanguageContext";
-import { Instagram, Facebook, MapPin, Phone, Globe } from "lucide-react"; // ✅ Import des icônes
+import { Instagram, Facebook, MapPin, Phone, Globe } from "lucide-react"; 
 
 export default function Footer() {
   const { t, lang } = useTranslation();
@@ -14,11 +14,10 @@ export default function Footer() {
     es: { mon: "Lunes", tueFri: "Martes - Viernes", satSun: "Sábado - Domingo", closed: "Cerrado", midi: "Mediodía", soir: "Noche" }
   }[lang as "fr" | "en" | "es"] || { mon: "Lundi", tueFri: "Mardi - Vendredi", satSun: "Samedi - Dimanche", closed: "Fermé", midi: "Midi", soir: "Soir" };
 
-  // Liens Réseaux Sociaux (À adapter avec tes vrais profils)
   const socialLinks = [
     { icon: <Instagram size={18} />, href: "https://www.instagram.com/kabuki_geneve/", label: "Instagram" },
     { icon: <Facebook size={18} />, href: "https://facebook.com/kabukisushigeneve", label: "Facebook" },
-    { icon: <Globe size={18} />, href: "https://www.tripadvisor.ch/", label: "TripAdvisor" }, // Optionnel mais recommandé
+    { icon: <Globe size={18} />, href: "https://www.tripadvisor.ch/", label: "TripAdvisor" }, 
   ];
 
   return (
@@ -29,7 +28,7 @@ export default function Footer() {
           
           {/* COLONNE 1 : LOGO & RÉSEAUX */}
           <div className="space-y-6">
-            <Link href={`/${lang}`} className="inline-block w-32">
+            <Link href={`/${lang}`} className="inline-block w-32" aria-label="Retour à l'accueil"> {/* ✅ FIX A11Y */}
               <Image 
                 src="/images/logo.png" 
                 alt="Kabuki Sushi Logo" 
@@ -41,7 +40,6 @@ export default function Footer() {
             <p className="text-gray-400 text-sm leading-relaxed">
               {t.footer.desc}
             </p>
-            {/* ✅ AJOUT DES RÉSEAUX SOCIAUX */}
             <div className="flex space-x-4 pt-2">
               {socialLinks.map((social) => (
                 <a 
@@ -64,10 +62,10 @@ export default function Footer() {
               {t.footer.linksTitle}
             </h3>
             <ul className="space-y-3 text-gray-400">
-              <li><Link href={`/${lang}`} className="hover:text-kabuki-red transition">{t.nav.home}</Link></li>
-              <li><Link href={`/${lang}/menu`} className="hover:text-kabuki-red transition">{t.nav.menu}</Link></li>
-              <li><Link href={`/${lang}/traiteur`} className="hover:text-kabuki-red transition">{t.nav.catering}</Link></li>
-              <li><Link href={`/${lang}/contact`} className="hover:text-kabuki-red transition">{t.nav.contact}</Link></li>
+              <li><Link href={`/${lang}`} className="hover:text-red-400 transition">{t.nav.home}</Link></li>
+              <li><Link href={`/${lang}/menu`} className="hover:text-red-400 transition">{t.nav.menu}</Link></li>
+              <li><Link href={`/${lang}/traiteur`} className="hover:text-red-400 transition">{t.nav.catering}</Link></li>
+              <li><Link href={`/${lang}/contact`} className="hover:text-red-400 transition">{t.nav.contact}</Link></li>
             </ul>
           </div>
 
@@ -78,7 +76,7 @@ export default function Footer() {
             </h3>
             <ul className="space-y-4 text-gray-400">
               <li className="flex items-start group">
-                <MapPin size={18} className="text-kabuki-red mr-3 shrink-0" />
+                <MapPin size={18} className="text-red-400 mr-3 shrink-0" /> {/* ✅ FIX A11Y */}
                 <a 
                   href="https://maps.google.com/?q=Kabuki+Sushi+1+Boulevard+de+la+Tour+1205+Genève" 
                   target="_blank" 
@@ -89,7 +87,7 @@ export default function Footer() {
                 </a>
               </li>
               <li className="flex items-center group">
-                <Phone size={18} className="text-kabuki-red mr-3 shrink-0" />
+                <Phone size={18} className="text-red-400 mr-3 shrink-0" /> {/* ✅ FIX A11Y */}
                 <a href="tel:+41786041542" className="hover:text-white transition font-bold tracking-tighter">
                   +41 78 604 15 42
                 </a> 
@@ -123,7 +121,8 @@ export default function Footer() {
                 </div>
               </li>
 
-              <li className="flex justify-between border-t border-neutral-800 pt-3 text-kabuki-red font-bold">
+              {/* ✅ FIX A11Y : text-red-400 remplace text-kabuki-red pour un meilleur contraste */}
+              <li className="flex justify-between border-t border-neutral-800 pt-3 text-red-400 font-bold">
                 <span>{days.mon}</span>
                 <span>{days.closed}</span>
               </li>
@@ -133,12 +132,13 @@ export default function Footer() {
         </div>
 
         {/* COPYRIGHT & LÉGAL */}
-        <div className="border-t border-neutral-800 pt-8 flex flex-col md:flex-row justify-between items-center text-[10px] text-gray-500 uppercase tracking-widest">
+        {/* ✅ FIX A11Y : text-gray-400 au lieu de text-gray-500 */}
+        <div className="border-t border-neutral-800 pt-8 flex flex-col md:flex-row justify-between items-center text-[10px] text-gray-400 uppercase tracking-widest">
           <p>© {new Date().getFullYear()} Kabuki Sushi Genève. All rights reserved.</p>
           <div className="flex space-x-6 mt-4 md:mt-0">
             <Link 
               href={`/${lang}/mentions-legales`} 
-              className="hover:text-white transition font-bold"
+              className="text-gray-300 hover:text-white transition font-bold" /* ✅ FIX A11Y : texte éclairci */
             >
               {lang === "fr" ? "Mentions Légales" : lang === "en" ? "Legal Notice" : "Aviso Legal"}
             </Link>

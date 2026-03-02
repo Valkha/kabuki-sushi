@@ -91,7 +91,7 @@ export default function ProductModal({ item, onClose }: ProductModalProps) {
           <X size={24} />
         </button>
 
-        {/* --- ZONE IMAGE : OPTIMISATION NETTETÉ --- */}
+        {/* --- ZONE IMAGE --- */}
         <div className="relative w-full bg-[#050505] h-[40vh] md:h-[55vh] flex-shrink-0 group overflow-hidden border-b border-neutral-900/50">
           {item.image_url ? (
             <Image 
@@ -136,29 +136,33 @@ export default function ProductModal({ item, onClose }: ProductModalProps) {
             </p>
           </div>
 
-          {/* ✅ CORRECTIF : Ajout de shrink-0 et pt-6 pour éviter l'écrasement du bouton visible sur image_fc8d1c.jpg */}
-          <div className="mt-auto pt-6 flex flex-col sm:flex-row gap-4 items-center shrink-0">
-            <div className="flex items-center bg-white/5 border border-neutral-800 rounded-2xl h-16 w-full sm:w-auto overflow-hidden shrink-0">
+          {/* ACTIONS : Sélecteur centré et Bouton agrandi */}
+          <div className="mt-auto pt-6 flex flex-col gap-4 w-full shrink-0">
+            
+            <div className="flex items-center justify-between bg-white/5 border border-neutral-800 rounded-2xl min-h-[64px] h-16 w-full px-4 shrink-0">
               <button 
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                className="w-16 h-full flex items-center justify-center text-neutral-400 hover:text-white transition-colors active:bg-neutral-800"
+                className="w-12 h-12 flex items-center justify-center text-neutral-400 hover:text-white transition-colors active:bg-neutral-800 rounded-xl"
               >
                 <Minus size={20} />
               </button>
-              <span className="w-10 text-center font-bold text-white text-xl">
+              
+              <span className="font-bold text-white text-xl">
                 {quantity}
               </span>
+              
               <button 
                 onClick={() => setQuantity(Math.min(20, quantity + 1))}
-                className="w-16 h-full flex items-center justify-center text-neutral-400 hover:text-white transition-colors active:bg-neutral-800"
+                className="w-12 h-12 flex items-center justify-center text-neutral-400 hover:text-white transition-colors active:bg-neutral-800 rounded-xl"
               >
                 <Plus size={20} />
               </button>
             </div>
 
+            {/* ✅ AJUSTEMENT : text-sm pour plus de visibilité */}
             <button 
               onClick={handleAddToCart}
-              className="flex-1 w-full bg-kabuki-red hover:bg-red-700 text-white font-bold h-16 rounded-2xl uppercase tracking-[0.2em] text-[11px] transition-all active:scale-[0.98] shadow-2xl shadow-red-900/20 flex items-center justify-center gap-4 shrink-0"
+              className="w-full bg-kabuki-red hover:bg-red-700 text-white font-bold min-h-[64px] h-16 rounded-2xl uppercase tracking-[0.15em] text-sm transition-all active:scale-[0.98] shadow-2xl shadow-red-900/20 flex items-center justify-center gap-4 shrink-0"
             >
               <ShoppingCart size={20} />
               <span>Ajouter • {(item.price * quantity).toFixed(2)} CHF</span>

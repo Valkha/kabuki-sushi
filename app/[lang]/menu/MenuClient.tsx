@@ -21,58 +21,39 @@ export interface MenuItem extends ContextMenuItem {
   is_available: boolean;
 }
 
-const shimmer = (w: number, h: number) => `
-<svg width="${w}" height="${h}" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-  <defs>
-    <linearGradient id="g">
-      <stop stop-color="#171717" offset="20%" />
-      <stop stop-color="#262626" offset="50%" />
-      <stop stop-color="#171717" offset="70%" />
-    </linearGradient>
-  </defs>
-  <rect width="${w}" height="${h}" fill="#171717" />
-  <rect id="r" width="${w}" height="${h}" fill="url(#g)" />
-  <animate xlink:href="#r" attributeName="x" from="-${w}" to="${w}" dur="1s" repeatCount="indefinite"  />
-</svg>`;
-
-const toBase64 = (str: string) =>
-  typeof window === 'undefined' ? Buffer.from(str).toString('base64') : window.btoa(str);
-
-// --- COMPOSANT SKELETON ---
+// --- SKELETON ULTRA-LÉGER (CSS PUR) ---
+// Remplace la fonction `shimmer` qui causait l'erreur 400
 const SkeletonCard = () => (
-  <div className="bg-neutral-900 rounded-xl overflow-hidden border border-neutral-800 animate-pulse h-full">
-    <div className="aspect-square bg-neutral-800" />
+  <div className="bg-neutral-900 rounded-xl overflow-hidden border border-neutral-800 h-full">
+    <div className="aspect-square bg-neutral-800 animate-pulse" />
     <div className="p-3 space-y-2">
-      <div className="h-3 bg-neutral-800 rounded w-3/4" />
-      <div className="h-2 bg-neutral-800 rounded w-1/2" />
+      <div className="h-3 bg-neutral-800 rounded w-3/4 animate-pulse" />
+      <div className="h-2 bg-neutral-800 rounded w-1/2 animate-pulse" />
       <div className="pt-4 flex justify-between">
-        <div className="h-4 bg-neutral-800 rounded w-12" />
-        <div className="h-6 bg-neutral-800 rounded-full w-6" />
+        <div className="h-4 bg-neutral-800 rounded w-12 animate-pulse" />
+        <div className="h-6 bg-neutral-800 rounded-full w-6 animate-pulse" />
       </div>
     </div>
   </div>
 );
 
-// --- ✅ CORRECTION TYPESCRIPT : Variants typés explicitement ---
+// --- VARIANTS OPTIMISÉS ---
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.05,
+      staggerChildren: 0.03, // Plus rapide pour éviter de faire attendre l'utilisateur
     },
   },
 };
 
 const itemVariants: Variants = {
-  hidden: { opacity: 0, y: 15 },
+  hidden: { opacity: 0, y: 10 },
   show: { 
     opacity: 1, 
     y: 0, 
-    transition: { 
-      duration: 0.4, 
-      ease: "easeOut" 
-    } 
+    transition: { duration: 0.3 } // Transition plus courte et moins gourmande
   },
 };
 
@@ -81,7 +62,6 @@ const MenuItemCard = memo(({ item, onClick }: { item: MenuItem; onClick: (item: 
   const { lang } = useTranslation();
   const { items, addToCart, updateQuantity, removeFromCart } = useCart();
   const [imgError, setImgError] = useState(false);
-  // ✅ NOUVEAU : État pour le fondu de l'image
   const [isImageLoaded, setIsImageLoaded] = useState(false);
 
   const cartItem = items.find((i) => i.id === item.id);
@@ -118,10 +98,9 @@ const MenuItemCard = memo(({ item, onClick }: { item: MenuItem; onClick: (item: 
   return (
     <m.div 
       variants={itemVariants}
-      layout="position"
+      // ✅ CORRECTION : 'layout="position"' retiré pour libérer le processeur
       onClick={() => onClick(item)}
-      style={{ willChange: "transform, opacity" }}
-      className="bg-neutral-800 rounded-xl shadow-lg overflow-hidden hover:border-kabuki-red transition-all duration-300 group border border-neutral-700 flex flex-col h-full cursor-pointer relative"
+      className="bg-neutral-800 rounded-xl shadow-lg overflow-hidden hover:border-kabuki-red transition-colors duration-300 group border border-neutral-700 flex flex-col h-full cursor-pointer relative"
     >
       <div className="w-full bg-neutral-900 relative aspect-square overflow-hidden">
         <AnimatePresence>
@@ -139,33 +118,24 @@ const MenuItemCard = memo(({ item, onClick }: { item: MenuItem; onClick: (item: 
 
         {!imgError && item.image_url ? (
           <>
-            {/* ✅ CORRECTION : Motion div pour le fondu progressif de l'image */}
-            <m.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: isImageLoaded ? 1 : 0 }}
-              transition={{ duration: 0.5 }}
-              className="w-full h-full"
-            >
-              <Image 
-                src={item.image_url}
-                alt={displayName}
-                fill
-                quality={85}
-                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-                className={`object-cover transition-transform duration-500 group-hover:scale-105 ${
-                  isImageLoaded ? "opacity-100" : "opacity-0"
-                }`}
-                onLoad={() => setIsImageLoaded(true)}
-                placeholder="blur"
-                blurDataURL={`data:image/svg+xml;base64,${toBase64(shimmer(400, 400))}`}
-                priority={item.id < 1008} 
-                fetchPriority={item.id < 1008 ? "high" : "low"}
-                onError={() => setImgError(true)}
-              />
-            </m.div>
-            {/* Skeleton temporaire pendant que l'image décode */}
+            <Image 
+              src={item.image_url}
+              alt={displayName}
+              fill
+              quality={75} // ✅ CORRECTION : 75 au lieu de 85, invisible à l'œil nu mais 20% plus léger
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+              // ✅ CORRECTION : Utilisation de l'opacité CSS au lieu de blurDataURL
+              className={`object-cover transition-opacity duration-500 group-hover:scale-105 ${
+                isImageLoaded ? "opacity-100" : "opacity-0"
+              }`}
+              onLoad={() => setIsImageLoaded(true)}
+              priority={item.id < 1008} 
+              fetchPriority={item.id < 1008 ? "high" : "low"}
+              onError={() => setImgError(true)}
+            />
+            {/* Skeleton CSS local pendant le chargement */}
             {!isImageLoaded && (
-              <div className="absolute inset-0 bg-neutral-900 animate-pulse z-10" />
+              <div className="absolute inset-0 bg-neutral-800 animate-pulse z-10" />
             )}
           </>
         ) : (
@@ -213,7 +183,7 @@ const MenuItemCard = memo(({ item, onClick }: { item: MenuItem; onClick: (item: 
             <button 
               onClick={handleAdd}
               aria-label="Plus"
-              className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${
+              className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${
                 quantity > 0 ? "text-kabuki-red" : "bg-neutral-700 text-white hover:bg-kabuki-red"
               }`}
             >
@@ -320,26 +290,24 @@ export default function MenuClient() {
       </div>
 
       <div className="container mx-auto px-4">
+        {/* ✅ CORRECTION : 'layout' et AnimatePresence (popLayout) ont été retirés pour éviter le recalcul CPU de toute la grille */}
         <m.div 
           variants={containerVariants}
           initial="hidden"
           animate="show"
-          layout 
           className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6"
         >
-          <AnimatePresence mode="popLayout">
-            {loading ? (
-              [...Array(10)].map((_, i) => <SkeletonCard key={`skeleton-${i}`} />)
-            ) : (
-              filteredItems.map((item) => (
-                <MenuItemCard 
-                  key={item.id} 
-                  item={item} 
-                  onClick={handleOpenModal} 
-                />
-              ))
-            )}
-          </AnimatePresence>
+          {loading ? (
+            [...Array(10)].map((_, i) => <SkeletonCard key={`skeleton-${i}`} />)
+          ) : (
+            filteredItems.map((item) => (
+              <MenuItemCard 
+                key={item.id} 
+                item={item} 
+                onClick={handleOpenModal} 
+              />
+            ))
+          )}
         </m.div>
       </div>
 

@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useMemo, useCallback, memo } from "react";
 import Image from "next/image";
-import { m, AnimatePresence, Variants } from "framer-motion"; 
+// ✅ CORRECTION PERF : Import de LazyMotion et domAnimation
+import { m, AnimatePresence, Variants, LazyMotion, domAnimation } from "framer-motion"; 
 import { Search, Info, Plus, Minus } from "lucide-react";
 import Reveal from "@/components/Reveal";
 import { useTranslation } from "@/context/LanguageContext";
@@ -22,7 +23,6 @@ export interface MenuItem extends ContextMenuItem {
 }
 
 // --- SKELETON ULTRA-LÉGER (CSS PUR) ---
-// Remplace la fonction `shimmer` qui causait l'erreur 400
 const SkeletonCard = () => (
   <div className="bg-neutral-900 rounded-xl overflow-hidden border border-neutral-800 h-full">
     <div className="aspect-square bg-neutral-800 animate-pulse" />
@@ -43,7 +43,7 @@ const containerVariants: Variants = {
   show: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.03, // Plus rapide pour éviter de faire attendre l'utilisateur
+      staggerChildren: 0.03, 
     },
   },
 };
@@ -53,12 +53,13 @@ const itemVariants: Variants = {
   show: { 
     opacity: 1, 
     y: 0, 
-    transition: { duration: 0.3 } // Transition plus courte et moins gourmande
+    transition: { duration: 0.3 }
   },
 };
 
 // --- COMPOSANT CARTE MÉMOÏSÉ ---
-const MenuItemCard = memo(({ item, onClick }: { item: MenuItem; onClick: (item: MenuItem) => void }) => {
+// ✅ CORRECTION PERF : Ajout de la prop `index` pour cibler les premières images
+const MenuItemCard = memo(({ item, index, onClick }: { item: MenuItem; index: number; onClick: (item: MenuItem) => void }) => {
   const { lang } = useTranslation();
   const { items, addToCart, updateQuantity, removeFromCart } = useCart();
   const [imgError, setImgError] = useState(false);
@@ -98,7 +99,6 @@ const MenuItemCard = memo(({ item, onClick }: { item: MenuItem; onClick: (item: 
   return (
     <m.div 
       variants={itemVariants}
-      // ✅ CORRECTION : 'layout="position"' retiré pour libérer le processeur
       onClick={() => onClick(item)}
       className="bg-neutral-800 rounded-xl shadow-lg overflow-hidden hover:border-kabuki-red transition-colors duration-300 group border border-neutral-700 flex flex-col h-full cursor-pointer relative"
     >
@@ -122,18 +122,17 @@ const MenuItemCard = memo(({ item, onClick }: { item: MenuItem; onClick: (item: 
               src={item.image_url}
               alt={displayName}
               fill
-              quality={75} // ✅ CORRECTION : 75 au lieu de 85, invisible à l'œil nu mais 20% plus léger
+              quality={75} 
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-              // ✅ CORRECTION : Utilisation de l'opacité CSS au lieu de blurDataURL
               className={`object-cover transition-opacity duration-500 group-hover:scale-105 ${
                 isImageLoaded ? "opacity-100" : "opacity-0"
               }`}
               onLoad={() => setIsImageLoaded(true)}
-              priority={item.id < 1008} 
-              fetchPriority={item.id < 1008 ? "high" : "low"}
+              // ✅ CORRECTION PERF : Seules les 4 premières images (index 0, 1, 2, 3) sont préchargées
+              priority={index < 4} 
+              fetchPriority={index < 4 ? "high" : "auto"}
               onError={() => setImgError(true)}
             />
-            {/* Skeleton CSS local pendant le chargement */}
             {!isImageLoaded && (
               <div className="absolute inset-0 bg-neutral-800 animate-pulse z-10" />
             )}
@@ -245,80 +244,84 @@ export default function MenuClient() {
   }, []);
 
   return (
-    <div className="bg-[#080808] min-h-screen pb-32 pt-24 relative">
-      <div className="bg-black text-white py-12 md:py-16 text-center relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('/pattern-kimono.png')] opacity-5 z-0" aria-hidden="true"></div>
-        <Reveal>
-          <h1 className="text-4xl md:text-6xl font-display font-bold uppercase tracking-widest relative z-10">
-            {t.menu.title}
-          </h1>
-          <div className="w-12 h-1 bg-kabuki-red mx-auto mt-6 relative z-10"></div>
-        </Reveal>
-      </div>
-
-      <div className="sticky top-[70px] z-30 bg-[#080808]/80 backdrop-blur-xl py-4 border-b border-neutral-900 mb-8">
-        <div className="container mx-auto px-4">
-          <div className="relative max-w-md mx-auto mb-6">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-600" size={16} aria-hidden="true" />
-            <input 
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={lang === "fr" ? "Rechercher..." : "Search..."}
-              aria-label="Rechercher un plat"
-              className="w-full bg-black border border-neutral-800 rounded-2xl py-2 pl-12 pr-4 text-xs text-white focus:border-kabuki-red outline-none shadow-xl transition-all"
-            />
-          </div>
-
-          <nav className="flex flex-nowrap overflow-x-auto md:justify-center gap-2 pb-2 no-scrollbar" aria-label="Catégories">
-            {filterCategories.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => setActiveCategory(cat.id)}
-                aria-pressed={activeCategory === cat.id}
-                className={`flex-shrink-0 px-5 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-all ${
-                  activeCategory === cat.id 
-                  ? "bg-kabuki-red border-kabuki-red text-white" 
-                  : "bg-neutral-900 border-neutral-800 text-neutral-500 hover:text-white"
-                }`}
-              >
-                {cat.label}
-              </button>
-            ))}
-          </nav>
+    // ✅ CORRECTION PERF : LazyMotion englobe le composant pour différer le chargement lourd de Framer Motion
+    <LazyMotion features={domAnimation}>
+      <div className="bg-[#080808] min-h-screen pb-32 pt-24 relative">
+        <div className="bg-black text-white py-12 md:py-16 text-center relative overflow-hidden">
+          <div className="absolute inset-0 bg-[url('/pattern-kimono.png')] opacity-5 z-0" aria-hidden="true"></div>
+          <Reveal>
+            <h1 className="text-4xl md:text-6xl font-display font-bold uppercase tracking-widest relative z-10">
+              {t.menu.title}
+            </h1>
+            <div className="w-12 h-1 bg-kabuki-red mx-auto mt-6 relative z-10"></div>
+          </Reveal>
         </div>
-      </div>
 
-      <div className="container mx-auto px-4">
-        {/* ✅ CORRECTION : 'layout' et AnimatePresence (popLayout) ont été retirés pour éviter le recalcul CPU de toute la grille */}
-        <m.div 
-          variants={containerVariants}
-          initial="hidden"
-          animate="show"
-          className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6"
-        >
-          {loading ? (
-            [...Array(10)].map((_, i) => <SkeletonCard key={`skeleton-${i}`} />)
-          ) : (
-            filteredItems.map((item) => (
-              <MenuItemCard 
-                key={item.id} 
-                item={item} 
-                onClick={handleOpenModal} 
+        <div className="sticky top-[70px] z-30 bg-[#080808]/80 backdrop-blur-xl py-4 border-b border-neutral-900 mb-8">
+          <div className="container mx-auto px-4">
+            <div className="relative max-w-md mx-auto mb-6">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-600" size={16} aria-hidden="true" />
+              <input 
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={lang === "fr" ? "Rechercher..." : "Search..."}
+                aria-label="Rechercher un plat"
+                className="w-full bg-black border border-neutral-800 rounded-2xl py-2 pl-12 pr-4 text-xs text-white focus:border-kabuki-red outline-none shadow-xl transition-all"
               />
-            ))
-          )}
-        </m.div>
-      </div>
+            </div>
 
-      <AnimatePresence>
-        {selectedProduct && (
-          <ProductModal 
-            item={selectedProduct} 
-            onClose={() => setSelectedProduct(null)} 
-          />
-        )}
-      </AnimatePresence>
-    </div>
+            <nav className="flex flex-nowrap overflow-x-auto md:justify-center gap-2 pb-2 no-scrollbar" aria-label="Catégories">
+              {filterCategories.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => setActiveCategory(cat.id)}
+                  aria-pressed={activeCategory === cat.id}
+                  className={`flex-shrink-0 px-5 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-all ${
+                    activeCategory === cat.id 
+                    ? "bg-kabuki-red border-kabuki-red text-white" 
+                    : "bg-neutral-900 border-neutral-800 text-neutral-500 hover:text-white"
+                  }`}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </nav>
+          </div>
+        </div>
+
+        <div className="container mx-auto px-4">
+          <m.div 
+            variants={containerVariants}
+            initial="hidden"
+            animate="show"
+            className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6"
+          >
+            {loading ? (
+              [...Array(10)].map((_, i) => <SkeletonCard key={`skeleton-${i}`} />)
+            ) : (
+              // ✅ CORRECTION PERF : On passe l'index à MenuItemCard pour gérer la priorité d'image
+              filteredItems.map((item, index) => (
+                <MenuItemCard 
+                  key={item.id} 
+                  item={item} 
+                  index={index}
+                  onClick={handleOpenModal} 
+                />
+              ))
+            )}
+          </m.div>
+        </div>
+
+        <AnimatePresence>
+          {selectedProduct && (
+            <ProductModal 
+              item={selectedProduct} 
+              onClose={() => setSelectedProduct(null)} 
+            />
+          )}
+        </AnimatePresence>
+      </div>
+    </LazyMotion>
   );
 }

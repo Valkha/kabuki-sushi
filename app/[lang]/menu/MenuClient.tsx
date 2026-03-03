@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback, memo } from "react";
 import Image from "next/image";
-import { m, AnimatePresence, Variants, LazyMotion, domAnimation } from "framer-motion"; 
+import { m, AnimatePresence, LazyMotion, domAnimation } from "framer-motion"; 
 import { Search, Info, Plus, Minus } from "lucide-react";
 import Reveal from "@/components/Reveal";
 import { useTranslation } from "@/context/LanguageContext";
@@ -23,16 +23,7 @@ interface MenuClientProps {
   initialItems: MenuItem[];
 }
 
-// ✅ OPTIMISATION PERF 1 : L'animation d'entrée est encore plus courte et légère
-const itemVariants: Variants = {
-  hidden: { opacity: 0, y: 15 },
-  show: { 
-    opacity: 1, 
-    y: 0, 
-    transition: { duration: 0.3, ease: "easeOut" } 
-  },
-};
-
+// --- COMPOSANT CARTE 100% NATIF (SANS FRAMER MOTION POUR LA PERF) ---
 const MenuItemCard = memo(({ item, index, onClick }: { item: MenuItem; index: number; onClick: (item: MenuItem) => void }) => {
   const { lang } = useTranslation();
   const { items, addToCart, updateQuantity, removeFromCart } = useCart();
@@ -71,13 +62,8 @@ const MenuItemCard = memo(({ item, index, onClick }: { item: MenuItem; index: nu
   };
 
   return (
-    <m.div 
-      variants={itemVariants}
-      // ✅ OPTIMISATION PERF 2 : On n'anime la carte QUE lorsqu'elle approche de l'écran (margin: 50px).
-      // Cela évite au CPU de calculer la position des 97 cartes au chargement.
-      initial="hidden"
-      whileInView="show"
-      viewport={{ once: true, margin: "50px" }}
+    // ✅ RETRAIT DE m.div : On utilise une balise HTML standard div pour libérer 100% du CPU
+    <div 
       onClick={() => onClick(item)}
       className="bg-neutral-800 rounded-xl shadow-lg overflow-hidden hover:border-kabuki-red transition-colors duration-300 group border border-neutral-700 flex flex-col h-full cursor-pointer relative"
     >
@@ -101,15 +87,15 @@ const MenuItemCard = memo(({ item, index, onClick }: { item: MenuItem; index: nu
               src={item.image_url}
               alt={displayName}
               fill
-              quality={70} // ✅ 70 est le sweet spot absolu pour PageSpeed sans perte visible
+              quality={70} 
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
               className={`object-cover transition-opacity duration-300 group-hover:scale-105 ${
                 isImageLoaded ? "opacity-100" : "opacity-0"
               }`}
               onLoad={() => setIsImageLoaded(true)}
-              priority={index < 4} // Les 4 premiers sont chargés instantanément (LCP)
+              priority={index < 4} 
               fetchPriority={index < 4 ? "high" : "auto"}
-              loading={index < 4 ? "eager" : "lazy"} // Lazy load explicite pour le reste
+              loading={index < 4 ? "eager" : "lazy"}
               onError={() => setImgError(true)}
             />
             {!isImageLoaded && (
@@ -170,7 +156,7 @@ const MenuItemCard = memo(({ item, index, onClick }: { item: MenuItem; index: nu
           </div>
         </div>
       </div>
-    </m.div>
+    </div>
   );
 });
 
@@ -255,7 +241,6 @@ export default function MenuClient({ initialItems }: MenuClientProps) {
         </div>
 
         <div className="container mx-auto px-4">
-          {/* ✅ OPTIMISATION PERF 3 : Retrait du conteneur parent lourd (variants={containerVariants}) */}
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6">
             {filteredItems.map((item, index) => (
               <MenuItemCard 

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useUser } from "@/context/UserContext";
+import { createClient } from "@/utils/supabase/client";
 import { m, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Save, User, Phone, CheckCircle, MapPin, Trash2, AlertTriangle } from "lucide-react";
 import { useParams } from "next/navigation";
@@ -10,6 +11,7 @@ import TransitionLink from "@/components/TransitionLink";
 export default function SettingsPage() {
   const { user, profile, refreshProfile, loading } = useUser(); 
   const { lang } = useParams();
+  const supabase = createClient();
 
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
@@ -31,30 +33,21 @@ export default function SettingsPage() {
   }, [profile]);
 
   const handleUpdate = async () => {
+    // On utilise l'ID du profil ou de l'user pour être certain d'avoir la cible
     const targetId = profile?.id || user?.id;
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
     setErrorMsg(null);
+
     if (!targetId) {
-      setErrorMsg("Erreur : ID utilisateur introuvable.");
+      setErrorMsg("Session expirée. Veuillez recharger la page.");
       return;
     }
 
     setIsUpdating(true);
 
     try {
-      console.log("🚀 Tentative de sauvegarde pour :", targetId);
-
-      const response = await fetch(`${url}/rest/v1/profiles?id=eq.${targetId}`, {
-        method: 'PATCH',
-        headers: {
-          'apikey': key!,
-          'Authorization': `Bearer ${key}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=representation' // On demande à Supabase de nous renvoyer l'objet modifié
-        },
-        body: JSON.stringify({
+      const { error } = await supabase
+        .from("profiles")
+        .update({
           full_name: fullName,
           phone: phone,
           address: address,
@@ -62,27 +55,19 @@ export default function SettingsPage() {
           city: city,
           updated_at: new Date().toISOString(),
         })
-      });
+        .eq("id", targetId);
 
-      const responseData = await response.json();
-      console.log("🔍 Réponse brute de Supabase :", responseData);
+      if (error) throw error;
 
-      if (!response.ok) {
-        throw new Error(responseData.message || "Erreur serveur Supabase");
-      }
-
-      // Si la réponse est vide (Array [0]), c'est que le RLS a bloqué la modif
-      if (Array.isArray(responseData) && responseData.length === 0) {
-        throw new Error("Mise à jour refusée par Supabase (Vérifiez les règles RLS).");
-      }
-
+      // On attend que le profil soit rafraîchi dans le contexte
       await refreshProfile();
+      
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
-
     } catch (err) {
-      console.error("💥 Erreur attrapée :", err);
-      setErrorMsg(err instanceof Error ? err.message : "Erreur inconnue");
+      console.error("💥 Erreur de sauvegarde:", err);
+      const errorMessage = err instanceof Error ? err.message : "Erreur de permissions Supabase.";
+      setErrorMsg(errorMessage);
     } finally {
       setIsUpdating(false);
     }

@@ -90,16 +90,17 @@ const nextConfig: NextConfig = {
 };
 
 export default withSentryConfig(nextConfig, {
-  org: "kabuki-sushi", 
+  // ✅ CORRECTION ORG : On utilise "valkha" comme indiqué dans tes logs Vercel
+  org: "valkha", 
+  // ✅ VERIFIE CE SLUG : Assure-toi que le nom du projet dans Sentry est bien "kabuki-sushi"
   project: "kabuki-sushi",
   
   silent: !process.env.CI, 
   widenClientFileUpload: true,
-  disableLogger: true,
+  
+  // ✅ Suppression de disableLogger (déprécié) et hideSourceMaps (inexistant)
   
   sourcemaps: {
-    // ✅ Correction : hideSourceMaps est maintenant bien placé ici
-    hideSourceMaps: true,
     deleteSourcemapsAfterUpload: true,
   },
 });

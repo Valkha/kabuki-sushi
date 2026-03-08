@@ -9,7 +9,8 @@ import { useParams } from "next/navigation";
 import TransitionLink from "@/components/TransitionLink";
 
 export default function SettingsPage() {
-  const { profile, refreshProfile } = useUser(); 
+  // ✅ On récupère 'user' et 'loading' pour la sécurité
+  const { user, profile, refreshProfile, loading } = useUser(); 
   const { lang } = useParams();
   const supabase = createClient();
 
@@ -32,28 +33,31 @@ export default function SettingsPage() {
   }, [profile]);
 
   const handleUpdate = async () => {
-    // ✅ Log de diagnostic immédiat
+    // ✅ PRIORITÉ : On utilise l'ID du user Google si le profil n'est pas encore synchronisé
+    const targetId = profile?.id || user?.id;
+
     console.log("🔥 BOUTON CLIQUÉ : Lancement de handleUpdate");
 
-    if (!profile?.id) {
-      console.error("❌ Erreur: ID du profil introuvable.");
+    if (!targetId) {
+      console.error("❌ Erreur: Aucun ID utilisateur trouvé (Session expirée ?)");
       return;
     }
 
     setIsUpdating(true);
     try {
-      console.log("📡 Envoi vers Supabase pour l'ID:", profile.id);
+      console.log("📡 Upsert Supabase pour l'ID:", targetId);
       
       const { data, error } = await supabase
         .from("profiles")
-        .update({
+        .upsert({
+          id: targetId, // ✅ Obligatoire pour l'upsert
           full_name: fullName,
           phone: phone,
           address: address,
           zip_code: zipCode,
-          city: city
+          city: city,
+          updated_at: new Date().toISOString(),
         })
-        .eq("id", profile.id)
         .select();
 
       if (error) {
@@ -61,7 +65,7 @@ export default function SettingsPage() {
         throw error;
       }
 
-      console.log("✅ Mise à jour réussie côté serveur:", data);
+      console.log("✅ Mise à jour réussie:", data);
       
       await refreshProfile();
       setShowSuccess(true);
@@ -72,6 +76,15 @@ export default function SettingsPage() {
       setIsUpdating(false);
     }
   };
+
+  // ✅ Gestion de l'état de chargement initial
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-kabuki-red border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black pt-32 pb-20 px-6">
@@ -85,7 +98,6 @@ export default function SettingsPage() {
           <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-8 shadow-2xl space-y-6">
             <h1 className="text-2xl font-display font-bold text-white uppercase tracking-widest mb-4">Informations Personnelles</h1>
             
-            {/* Formulaire sans action pour éviter le rechargement */}
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
@@ -117,7 +129,6 @@ export default function SettingsPage() {
                 <input type="text" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Ville" className="w-full bg-black border border-neutral-800 rounded-xl py-4 px-4 text-white focus:border-kabuki-red outline-none transition-colors" />
               </div>
 
-              {/* ✅ BOUTON SORTI DU FORMULAIRE ET SANS TYPE SUBMIT */}
               <button 
                 type="button" 
                 onClick={handleUpdate}
@@ -129,7 +140,6 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* ZONE DE DANGER */}
           <div className="bg-red-900/10 border border-red-900/20 rounded-3xl p-8">
             <h2 className="text-red-500 font-bold uppercase tracking-widest text-sm mb-2 flex items-center gap-2">
               <Trash2 size={16} /> Zone de danger

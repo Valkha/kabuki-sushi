@@ -24,7 +24,9 @@ export default function OrderHistory() {
   const { user } = useUser();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
+  
+  // ✅ CORRECTION CRITIQUE : useState empêche Supabase d'être recréé à chaque rendu
+  const [supabase] = useState(() => createClient());
 
   useEffect(() => {
     async function fetchOrders() {
@@ -41,7 +43,7 @@ export default function OrderHistory() {
     }
 
     fetchOrders();
-  }, [user, supabase]);
+  }, [user, supabase]); // supabase est maintenant stable, le useEffect ne bouclera plus
 
   if (loading) return <div className="text-gray-500 animate-pulse uppercase text-[10px] font-bold">Chargement des commandes...</div>;
   if (orders.length === 0) return <div className="text-gray-500 text-xs uppercase italic">Aucune commande passée.</div>;

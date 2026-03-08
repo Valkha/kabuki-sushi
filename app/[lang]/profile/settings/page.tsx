@@ -8,13 +8,19 @@ import { useParams } from "next/navigation";
 import TransitionLink from "@/components/TransitionLink";
 
 // 🛡️ Typage strict pour éviter les erreurs ESLint 'any'
-interface SupabaseUpsertResponse {
-  data: unknown[] | null;
-  error: { message: string; code?: string } | null;
+interface SupabaseError {
+  message: string;
+  code?: string;
+  details?: string;
+  hint?: string;
+}
+
+interface UpsertResult {
+  data: unknown | null;
+  error: SupabaseError | null;
 }
 
 export default function SettingsPage() {
-  // ✅ On récupère 'loading' pour savoir si le contexte est en train de se synchroniser
   const { user, profile, loading, refreshProfile } = useUser();
   const { lang } = useParams();
   
@@ -43,35 +49,28 @@ export default function SettingsPage() {
     e.preventDefault(); 
     console.log("[DIAG] 1. Clic sur Sauvegarder intercepté.");
     
-    // 🔍 ANALYSE DE LA SESSION AU MOMENT DU CLIC
-    if (!user) {
-      console.log("[DIAG] ❌ ARRÊT : L'objet 'user' est totalement NULL.");
-      setErrorMsg("Session introuvable. Essayez de vous reconnecter.");
-      return;
-    }
-    
-    if (!user.id) {
-      console.log("[DIAG] ❌ ARRÊT : 'user' existe mais 'user.id' est absent.", user);
-      setErrorMsg("Identifiant utilisateur manquant.");
+    if (!user?.id) {
+      console.log("[DIAG] ❌ ARRÊT : Session utilisateur manquante.");
+      setErrorMsg("Session introuvable.");
       return;
     }
 
     if (loading) {
-      console.log("[DIAG] ❌ ARRÊT : Le contexte est encore en mode LOADING (synchronisation).");
+      console.log("[DIAG] ❌ ARRÊT : Synchronisation en cours.");
       return;
     }
     
     setIsUpdating(true);
     setErrorMsg(null);
-    console.log(`[DIAG] 2. OK ! User ID détecté : ${user.id}. Préparation de l'envoi...`);
+    console.log(`[DIAG] 2. User ID : ${user.id}. Envoi imminent...`);
 
     // 🕒 Timeout de sécurité (5 secondes)
-    const timeout = new Promise<SupabaseUpsertResponse>((_, reject) => 
+    const timeout = new Promise<UpsertResult>((_, reject) => 
       setTimeout(() => reject(new Error("La base de données ne répond pas (Timeout 5s).")), 5000)
     );
 
     try {
-      console.log("[DIAG] 3. Envoi de la requête upsert...");
+      console.log("[DIAG] 3. Envoi de la requête upsert (sans select)...");
 
       const upsertTask = supabase
         .from("profiles")
@@ -86,31 +85,30 @@ export default function SettingsPage() {
             updated_at: new Date().toISOString(),
           },
           { onConflict: 'id' }
-        )
-        .select();
+        );
 
-      const response = await Promise.race([upsertTask, timeout]) as SupabaseUpsertResponse;
-      const { data, error } = response;
+      // On attend soit le succès de l'écriture, soit le timeout
+      const result = await Promise.race([upsertTask, timeout]) as UpsertResult;
 
-      console.log("[DIAG] 4. Réponse reçue !");
-
-      if (error) {
-        console.error("[DIAG] ❌ Erreur Supabase :", error);
-        throw new Error(error.message);
+      if (result.error) {
+        console.error("[DIAG] ❌ Erreur Supabase :", result.error);
+        throw new Error(result.error.message);
       }
 
-      console.log("[DIAG] ✅ Succès DB :", data);
+      console.log("[DIAG] ✅ Succès DB.");
+      console.log("[DIAG] 5. Appel de refreshProfile()...");
+
       await refreshProfile();
       
       console.log("[DIAG] 6. refreshProfile() terminé.");
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (err: unknown) {
-      console.error("[DIAG] ❌ Crash intercepté :", err);
+      console.error("[DIAG] ❌ Échec de la procédure :", err);
       const errorMessage = err instanceof Error ? err.message : "Erreur de base de données";
       setErrorMsg(errorMessage);
     } finally {
-      console.log("[DIAG] 7. Procédure terminée (Finally).");
+      console.log("[DIAG] 7. Nettoyage de l'état (Finally).");
       setIsUpdating(false);
     }
   };
@@ -155,7 +153,6 @@ export default function SettingsPage() {
 
             <button 
               type="submit"
-              // ✅ On bloque si on met à jour, si le contexte charge, ou si pas d'user
               disabled={isUpdating || loading || !user} 
               className="w-full bg-kabuki-red text-white py-4 rounded-xl font-bold uppercase tracking-[0.2em] hover:bg-white hover:text-black transition-all flex items-center justify-center gap-3 disabled:opacity-50"
             >

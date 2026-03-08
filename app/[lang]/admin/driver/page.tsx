@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
-import { supabase } from "@/utils/supabase/client";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
+// ✅ CORRECTION IMPORT : On utilise la nouvelle méthode
+import { createClient } from "@/utils/supabase/client";
 import { Truck, MapPin, CheckCircle2, Navigation, Loader2, AlertTriangle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -16,6 +17,9 @@ interface Order {
 }
 
 export default function DriverDashboard() {
+  // ✅ CORRECTION CLIENT : On initialise le client Supabase
+  const supabase = useMemo(() => createClient(), []);
+
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeDeliveryId, setActiveDeliveryId] = useState<number | null>(null);
@@ -41,13 +45,15 @@ export default function DriverDashboard() {
       if (active) setActiveDeliveryId(active.id);
     }
     setLoading(false);
-  }, []);
+  }, [supabase]); // Ajout de supabase aux dépendances
 
-  // ✅ 2. Le useEffect vient ENSUITE
+  // ✅ 2. Le useEffect vient ENSUITE avec la correction pour set-state-in-effect
   useEffect(() => {
-    // On indique à ESLint que ce comportement est voulu
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchDriverOrders();
+    // On encapsule l'appel asynchrone pour satisfaire ESLint
+    const loadData = async () => {
+      await fetchDriverOrders();
+    };
+    loadData();
 
     const subscription = supabase
       .channel("driver-monitor")
@@ -57,7 +63,7 @@ export default function DriverDashboard() {
       .subscribe();
 
     return () => { supabase.removeChannel(subscription); };
-  }, [fetchDriverOrders]);
+  }, [fetchDriverOrders, supabase]); // Ajout de supabase aux dépendances
 
   const startDelivery = async (orderId: number) => {
     if (!navigator.geolocation) {

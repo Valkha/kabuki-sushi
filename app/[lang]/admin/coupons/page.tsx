@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { supabase } from "@/utils/supabase/client";
+import { useEffect, useState, useCallback, useMemo } from "react";
+// ✅ CORRECTION IMPORT : On utilise la nouvelle méthode
+import { createClient } from "@/utils/supabase/client";
 import { 
   Ticket, Plus, Trash2, X, Loader2, 
   CheckCircle2, AlertCircle, Power, PowerOff, 
@@ -20,6 +21,9 @@ interface Coupon {
 }
 
 export default function AdminCouponsPage() {
+  // ✅ CORRECTION CLIENT : On initialise le client Supabase
+  const supabase = useMemo(() => createClient(), []);
+
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -49,7 +53,7 @@ export default function AdminCouponsPage() {
     if (data) setCoupons(data as Coupon[]);
     if (error) showToast(error.message, 'error');
     setLoading(false);
-  }, []);
+  }, [supabase]); // Ajout de supabase aux dépendances
 
   useEffect(() => {
     // Utilisation d'une fonction auto-invoquée pour éviter l'appel direct synchrone
@@ -208,7 +212,6 @@ export default function AdminCouponsPage() {
                     <input type="number" className="w-full bg-black border border-neutral-800 p-4 rounded-2xl outline-none focus:border-kabuki-red transition text-white" value={form.min_order_amount} onChange={e => setForm({...form, min_order_amount: e.target.value})} />
                   </div>
                   <div>
-                    {/* ✅ Correction de l'apostrophe ici */}
                     <label className="text-[10px] uppercase text-gray-500 font-bold mb-2 block tracking-widest">{"Date d'expiration"}</label>
                     <input type="date" className="w-full bg-black border border-neutral-800 p-4 rounded-2xl outline-none focus:border-kabuki-red transition text-white" value={form.expiration_date} onChange={e => setForm({...form, expiration_date: e.target.value})} />
                   </div>

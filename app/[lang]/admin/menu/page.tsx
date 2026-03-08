@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { supabase } from "@/utils/supabase/client";
+import { useEffect, useState, useCallback, useMemo } from "react";
+// ✅ CORRECTION IMPORT
+import { createClient } from "@/utils/supabase/client";
 import { 
   Search, Edit2, Trash2, Plus, X, Upload, Loader2, 
   CheckCircle2, AlertCircle, Wand2, 
@@ -22,10 +23,13 @@ interface MenuItem {
   description_en: string;
   description_es: string;
   image_url: string;
-  is_available: boolean; // ✅ Ajouté pour la gestion des stocks
+  is_available: boolean; 
 }
 
 export default function AdminMenu() {
+  // ✅ CORRECTION CLIENT : On initialise le client ici pour qu'il soit disponible partout dans le composant
+  const supabase = useMemo(() => createClient(), []);
+
   const { lang } = useTranslation(); 
   const [items, setItems] = useState<MenuItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -33,7 +37,7 @@ export default function AdminMenu() {
   const [uploading, setUploading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
-  const [updatingId, setUpdatingId] = useState<number | null>(null); // ✅ Pour le feedback du toggle
+  const [updatingId, setUpdatingId] = useState<number | null>(null); 
   
   const [editingId, setEditingId] = useState<number | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -52,6 +56,7 @@ export default function AdminMenu() {
     setTimeout(() => setToast(null), 3000);
   };
 
+  // ✅ AJOUT DE SUPABASE DANS LES DÉPENDANCES
   const fetchMenu = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -65,13 +70,12 @@ export default function AdminMenu() {
       setItems(data as MenuItem[]);
     }
     setLoading(false);
-  }, []);
+  }, [supabase]); 
 
   useEffect(() => {
     fetchMenu();
   }, [fetchMenu]);
 
-  // ✅ TOGGLE DE DISPONIBILITÉ (STOCK)
   const toggleAvailability = async (id: number, currentStatus: boolean) => {
     setUpdatingId(id);
     const { error } = await supabase

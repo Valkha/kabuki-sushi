@@ -12,9 +12,13 @@ import {
   BarChart3,
   Ticket 
 } from "lucide-react";
-import { supabase } from "@/utils/supabase/client";
+// ✅ CORRECTION IMPORT
+import { createClient } from "@/utils/supabase/client";
 
 export default function AdminHeader({ lang }: { lang: string }) {
+  // ✅ CORRECTION CLIENT : Initialisation du client
+  const supabase = createClient();
+  
   const pathname = usePathname();
   const { t } = useTranslation();
 

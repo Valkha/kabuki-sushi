@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
-import { supabase } from "@/utils/supabase/client";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
+// ✅ CORRECTION IMPORT : On utilise la nouvelle méthode
+import { createClient } from "@/utils/supabase/client";
 import { 
   Package, User, MapPin, Eye, XCircle, Calendar, CheckCircle2, 
   AlertCircle, ChefHat, Truck, Loader2, RefreshCw, Clock, 
@@ -33,6 +34,9 @@ interface Order {
 }
 
 export default function OrdersList() {
+  // ✅ CORRECTION CLIENT : On initialise le client Supabase
+  const supabase = useMemo(() => createClient(), []);
+
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -77,7 +81,7 @@ export default function OrdersList() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [supabase]); // ✅ Ajout de supabase aux dépendances
 
   const updateStatus = async (orderId: number, newStatus: string) => {
     const { error } = await supabase.from("orders").update({ status: newStatus }).eq("id", orderId);
@@ -106,7 +110,7 @@ export default function OrdersList() {
       })
       .subscribe();
     return () => { supabase.removeChannel(subscription); };
-  }, [fetchOrders, playNotification]);
+  }, [fetchOrders, playNotification, supabase]); // ✅ Ajout de supabase aux dépendances
 
   const getStatusStyle = (status: string) => {
     switch (status) {

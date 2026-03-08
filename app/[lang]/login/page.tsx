@@ -1,18 +1,22 @@
 "use client";
 
 import { useState } from "react";
-import { supabase } from "@/utils/supabase/client";
+// ✅ CORRECTION IMPORT : On utilise la nouvelle méthode
+import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
-import { useTranslation } from "@/context/LanguageContext"; // ✅ Import du contexte de langue
+import { useTranslation } from "@/context/LanguageContext"; 
 
 export default function LoginPage() {
+  // ✅ CORRECTION CLIENT : Initialisation du client Supabase
+  const supabase = createClient();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   
   const router = useRouter();
-  const { lang } = useTranslation(); // ✅ Récupération de la langue actuelle (fr, en, ou es)
+  const { lang } = useTranslation(); 
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

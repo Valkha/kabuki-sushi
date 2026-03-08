@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { supabase } from "@/utils/supabase/client";
+import { useEffect, useState, useCallback, useMemo } from "react";
+// ✅ CORRECTION IMPORT : On utilise la nouvelle méthode
+import { createClient } from "@/utils/supabase/client";
 import { 
   TrendingUp, ShoppingBag, 
   Loader2, Calendar,
@@ -32,6 +33,9 @@ interface StatCardProps {
 }
 
 export default function AdminStatsPage() {
+  // ✅ CORRECTION CLIENT : On initialise le client Supabase
+  const supabase = useMemo(() => createClient(), []);
+
   const [loading, setLoading] = useState(true);
   
   // États pour la plage de dates
@@ -136,7 +140,7 @@ export default function AdminStatsPage() {
       setLoading(false);
     }
     getStats();
-  }, [calculateStats]);
+  }, [calculateStats, supabase]); // Ajout de supabase aux dépendances
 
   const exportToCSV = () => {
     const start = new Date(startDate);

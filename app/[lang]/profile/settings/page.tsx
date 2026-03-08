@@ -31,7 +31,7 @@ export default function SettingsPage() {
   }, [profile]);
 
   const handleUpdate = async () => {
-    // Utilisation de l'ID authentifié validé par ton audit
+    // Utilisation de l'ID authentifié ou fallback de debug
     const targetId = user?.id || "fef16323-7575-45f0-8f5e-2aaeee5d5cf9"; 
     
     setErrorMsg(null);
@@ -45,16 +45,18 @@ export default function SettingsPage() {
         throw new Error("Variables d'environnement Supabase manquantes.");
       }
 
-      // Appel direct sans passer par la librairie Supabase
-      const response = await fetch(`${url}/rest/v1/profiles?id=eq.${targetId}`, {
-        method: 'PATCH',
+      // Utilisation de POST avec resolution=merge pour simuler un UPSERT 
+      // car l'audit a montré que la ligne peut être absente (NULL)
+      const response = await fetch(`${url}/rest/v1/profiles`, {
+        method: 'POST',
         headers: {
           'apikey': key,
           'Authorization': `Bearer ${key}`,
           'Content-Type': 'application/json',
-          'Prefer': 'return=minimal'
+          'Prefer': 'resolution=merge-duplicates'
         },
         body: JSON.stringify({
+          id: targetId,
           full_name: fullName,
           phone: phone,
           address: address,
@@ -65,7 +67,7 @@ export default function SettingsPage() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: "Erreur réseau inconnue" }));
+        const errorData = (await response.json().catch(() => ({ message: "Erreur réseau" }))) as { message?: string };
         throw new Error(errorData.message || `Erreur serveur: ${response.status}`);
       }
 
@@ -101,7 +103,7 @@ export default function SettingsPage() {
 
         <m.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
           <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-8 shadow-2xl space-y-6">
-            <h1 className="text-2xl font-display font-bold text-white uppercase tracking-widest mb-4">Diagnostic Profil</h1>
+            <h1 className="text-2xl font-display font-bold text-white uppercase tracking-widest mb-4">Paramètres du Profil</h1>
             
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -109,14 +111,14 @@ export default function SettingsPage() {
                   <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Nom complet</label>
                   <div className="relative">
                     <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
-                    <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} className="w-full bg-black border border-neutral-800 rounded-xl py-4 pl-12 pr-4 text-white focus:border-kabuki-red outline-none" />
+                    <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} className="w-full bg-black border border-neutral-800 rounded-xl py-4 pl-12 pr-4 text-white focus:border-kabuki-red outline-none transition-colors" />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Téléphone</label>
                   <div className="relative">
                     <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
-                    <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full bg-black border border-neutral-800 rounded-xl py-4 pl-12 pr-4 text-white focus:border-kabuki-red outline-none" />
+                    <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full bg-black border border-neutral-800 rounded-xl py-4 pl-12 pr-4 text-white focus:border-kabuki-red outline-none transition-colors" />
                   </div>
                 </div>
               </div>
@@ -125,13 +127,13 @@ export default function SettingsPage() {
                 <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Adresse</label>
                 <div className="relative">
                   <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
-                  <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} className="w-full bg-black border border-neutral-800 rounded-xl py-4 pl-12 pr-4 text-white focus:border-kabuki-red outline-none" />
+                  <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} className="w-full bg-black border border-neutral-800 rounded-xl py-4 pl-12 pr-4 text-white focus:border-kabuki-red outline-none transition-colors" />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <input type="text" value={zipCode} onChange={(e) => setZipCode(e.target.value)} placeholder="Code Postal" className="w-full bg-black border border-neutral-800 rounded-xl py-4 px-4 text-white focus:border-kabuki-red outline-none" />
-                <input type="text" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Ville" className="w-full bg-black border border-neutral-800 rounded-xl py-4 px-4 text-white focus:border-kabuki-red outline-none" />
+                <input type="text" value={zipCode} onChange={(e) => setZipCode(e.target.value)} placeholder="Code Postal" className="w-full bg-black border border-neutral-800 rounded-xl py-4 px-4 text-white focus:border-kabuki-red outline-none transition-colors" />
+                <input type="text" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Ville" className="w-full bg-black border border-neutral-800 rounded-xl py-4 px-4 text-white focus:border-kabuki-red outline-none transition-colors" />
               </div>
 
               <AnimatePresence>

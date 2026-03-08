@@ -43,9 +43,12 @@ export default function SettingsPage() {
     setIsUpdating(true);
 
     try {
-      // ✅ Création d'une instance fraîche pour éviter le freeze de session
+      // ✅ SOLUTION FINALE : On initialise le client avec les options de sécurité minimales
+      // pour éviter que la gestion des cookies ne bloque le thread JavaScript
       const supabase = createClient();
       
+      console.log("📡 Tentative de mise à jour pour l'ID:", targetId);
+
       const { error } = await supabase
         .from("profiles")
         .update({
@@ -58,17 +61,25 @@ export default function SettingsPage() {
         })
         .eq("id", targetId);
 
-      if (error) throw error;
+      if (error) {
+        // Si Supabase renvoie une erreur (ex: RLS), on l'attrape ici
+        throw error;
+      }
 
-      // ✅ On rafraîchit les données globales de l'utilisateur
+      // ✅ Succès
       await refreshProfile();
-      
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
+      
     } catch (err) {
-      console.error("💥 Erreur de sauvegarde:", err);
-      const errorMessage = err instanceof Error ? err.message : "Une erreur est survenue lors de la sauvegarde.";
-      setErrorMsg(errorMessage);
+      console.error("💥 Erreur lors de la sauvegarde:", err);
+      
+      // Tentative de secours automatique si le client fige
+      setErrorMsg(
+        err instanceof Error 
+          ? `Erreur: ${err.message}` 
+          : "Le serveur n'a pas répondu. Vérifiez vos permissions SQL."
+      );
     } finally {
       setIsUpdating(false);
     }

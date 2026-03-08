@@ -7,10 +7,14 @@ import { ArrowLeft, CheckCircle, AlertTriangle, Save, Loader2 } from "lucide-rea
 import { useParams } from "next/navigation";
 import TransitionLink from "@/components/TransitionLink";
 
-// 🛡️ Typage strict pour le résultat de Supabase
-interface SupabaseResponse {
-  data: unknown;
-  error: { message: string; code?: string } | null;
+interface SupabaseError {
+  message: string;
+  code?: string;
+}
+
+interface UpsertResult {
+  data: unknown | null;
+  error: SupabaseError | null;
 }
 
 export default function SettingsPage() {
@@ -39,14 +43,16 @@ export default function SettingsPage() {
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault(); 
-    if (!user?.id || loading) return;
+    
+    // 🛡️ SÉCURITÉ : Empêche le spam du bouton et vérifie la session
+    if (!user?.id || loading || isUpdating) return;
     
     setIsUpdating(true);
     setErrorMsg(null);
 
-    // 🕒 Timeout typé explicitement
-    const timeout = new Promise<SupabaseResponse>((_, reject) => 
-      setTimeout(() => reject(new Error("La base de données ne répond pas.")), 5000)
+    // 🕒 Timeout de 8 secondes pour pallier aux lenteurs RLS
+    const timeout = new Promise<UpsertResult>((_, reject) => 
+      setTimeout(() => reject(new Error("La base de données met trop de temps à répondre (Timeout 8s).")), 8000)
     );
 
     try {
@@ -62,19 +68,17 @@ export default function SettingsPage() {
           updated_at: new Date().toISOString(),
         }, { onConflict: 'id' });
 
-      // ✅ Utilisation du type SupabaseResponse au lieu de any
-      const result = await Promise.race([upsertTask, timeout]) as SupabaseResponse;
-      
+      const result = await Promise.race([upsertTask, timeout]) as UpsertResult;
+
       if (result.error) throw new Error(result.error.message);
 
       await refreshProfile();
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (err: unknown) {
-      // ✅ Typage sécurisé pour le bloc catch
-      const message = err instanceof Error ? err.message : "Erreur de base de données";
-      console.error("Save error:", message);
-      setErrorMsg(message);
+      const errorMessage = err instanceof Error ? err.message : "Erreur de base de données";
+      console.error("[DIAG] Erreur sauvegarde:", errorMessage);
+      setErrorMsg(errorMessage);
     } finally {
       setIsUpdating(false);
     }
@@ -84,11 +88,11 @@ export default function SettingsPage() {
     <div className="min-h-screen bg-black pt-32 pb-20 px-6 text-white">
       <div className="max-w-2xl mx-auto">
         <TransitionLink href={`/${lang}/profile`} className="mb-8 inline-flex items-center gap-2 text-neutral-500 hover:text-white transition-colors">
-          <ArrowLeft size={20} /> <span className="text-xs font-bold uppercase tracking-widest">Retour</span>
+          <ArrowLeft size={20} /> <span className="text-xs font-bold uppercase tracking-widest">Retour au profil</span>
         </TransitionLink>
 
         <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-8 shadow-2xl space-y-8">
-          <h1 className="text-2xl font-display font-bold uppercase tracking-widest">Paramètres</h1>
+          <h1 className="text-2xl font-display font-bold uppercase tracking-widest">Mon Profil</h1>
           
           <form onSubmit={handleUpdate} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -113,7 +117,7 @@ export default function SettingsPage() {
             </div>
 
             {errorMsg && (
-              <div className="bg-red-900/20 border border-red-500/50 text-red-500 p-4 rounded-xl flex items-center gap-2 text-xs font-bold uppercase">
+              <div className="bg-red-900/20 border border-red-500/50 text-red-500 p-4 rounded-xl flex items-center gap-2 text-xs font-bold uppercase animate-pulse">
                 <AlertTriangle size={16} /> {errorMsg}
               </div>
             )}

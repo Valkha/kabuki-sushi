@@ -3,11 +3,11 @@
 import { useState } from "react";
 import TransitionLink from "./TransitionLink";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation"; // ✅ Ajout de useRouter
 import { m, AnimatePresence } from "framer-motion"; 
 import { useTranslation } from "@/context/LanguageContext";
 import LanguageSwitcher from "./LanguageSwitcher";
-import { ShoppingCart, User as UserIcon } from "lucide-react"; 
+import { ShoppingCart, User as UserIcon, LogOut } from "lucide-react"; // ✅ Ajout de LogOut
 import { useCart } from "@/context/CartContext"; 
 
 // ✅ IMPORTS POUR L'AUTH
@@ -23,6 +23,7 @@ export default function Navbar({ onOpenCart }: NavbarProps) {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false); 
   
   const pathname = usePathname();
+  const router = useRouter(); // ✅ Initialisation du routeur
   const { t, lang } = useTranslation();
   const { totalItems } = useCart(); 
   const { user, profile, signOut } = useUser(); 
@@ -35,6 +36,13 @@ export default function Navbar({ onOpenCart }: NavbarProps) {
   }
 
   const isActive = (path: string) => pathname === path;
+
+  // ✅ Gestionnaire de déconnexion robuste
+  const handleSignOut = async () => {
+    await signOut();
+    router.refresh(); // ✅ Force le middleware à vider les cookies de session
+    if (isOpen) setIsOpen(false);
+  };
 
   const navLinks = [
     { name: t?.nav?.home || "Accueil", path: `/${lang}` },
@@ -85,22 +93,24 @@ export default function Navbar({ onOpenCart }: NavbarProps) {
             </TransitionLink>
           ))}
 
-          {/* ✅ NOUVEAU PLACEMENT : Bouton Connexion bien visible AVANT le panier */}
+          {/* SECTION AUTH DESKTOP */}
           <div className="border-l border-neutral-800 pl-6 ml-2 flex items-center">
             {user ? (
               <div className="flex items-center gap-3 bg-neutral-900/50 px-4 py-2 rounded-full border border-neutral-800">
                 <div className="flex flex-col items-end">
-                  <span className="text-[11px] font-bold text-white capitalize leading-tight">{profile?.full_name || "Client"}</span>
+                  <span className="text-[11px] font-bold text-white capitalize leading-tight">
+                    {profile?.full_name || "Client"}
+                  </span>
                   <span className="text-[9px] font-bold text-kabuki-red uppercase tracking-widest leading-tight">
                     {profile?.wallet_balance ? Number(profile.wallet_balance).toFixed(2) : "0.00"} CHF
                   </span>
                 </div>
                 <button 
-                  onClick={signOut}
-                  className="text-[10px] text-gray-400 hover:text-white transition uppercase tracking-widest ml-2"
+                  onClick={handleSignOut}
+                  className="text-gray-500 hover:text-white transition ml-2 p-1"
                   title="Se déconnecter"
                 >
-                  Déco
+                  <LogOut size={14} />
                 </button>
               </div>
             ) : (
@@ -136,7 +146,7 @@ export default function Navbar({ onOpenCart }: NavbarProps) {
 
           <LanguageSwitcher />
 
-          {/* BOUTON TRAITEUR ADMIN */}
+          {/* ADMIN LINK */}
           {user && (
             <TransitionLink 
               href={`/${lang}/admin/menu`} 
@@ -145,58 +155,37 @@ export default function Navbar({ onOpenCart }: NavbarProps) {
               Admin
             </TransitionLink>
           )}
-
         </div>
 
         {/* --- MOBILE NAV BUTTONS --- */}
         <div className="flex md:hidden items-center space-x-4">
-          {/* ✅ BOUTON CONNEXION MOBILE (Icône seule) */}
           <button
-            onClick={() => user ? signOut() : setIsAuthModalOpen(true)}
+            onClick={() => user ? handleSignOut() : setIsAuthModalOpen(true)}
             aria-label={user ? "Déconnexion" : "Connexion"}
             className="relative p-2 active:scale-90 transition-transform"
           >
-            <UserIcon size={22} className={user ? "text-kabuki-red" : "text-white"} />
+            {user ? <LogOut size={22} className="text-kabuki-red" /> : <UserIcon size={22} className="text-white" />}
           </button>
 
           <button 
             onClick={onOpenCart} 
-            aria-label={`Ouvrir le panier, ${totalItems} articles`}
             className="relative p-2 z-50 active:scale-90 transition-transform"
           >
             <ShoppingCart size={24} className="text-white" />
-            <AnimatePresence>
-              {totalItems > 0 && (
-                <m.div 
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  exit={{ scale: 0 }}
-                  className="absolute top-0 right-0 bg-kabuki-red text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-kabuki-black"
-                >
-                  {totalItems}
-                </m.div>
-              )}
-            </AnimatePresence>
+            {totalItems > 0 && (
+              <span className="absolute top-0 right-0 bg-kabuki-red text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-kabuki-black">
+                {totalItems}
+              </span>
+            )}
           </button>
 
           <button 
             onClick={() => setIsOpen(!isOpen)} 
             className="z-50 w-8 h-10 flex flex-col justify-center items-center"
-            aria-label={isOpen ? "Fermer le menu" : "Ouvrir le menu"}
-            aria-expanded={isOpen}
           >
-            <m.span 
-              animate={isOpen ? { rotate: 45, y: 8 } : { rotate: 0, y: 0 }}
-              className="w-8 h-0.5 bg-white block mb-2 rounded-full"
-            ></m.span>
-            <m.span 
-              animate={isOpen ? { opacity: 0 } : { opacity: 1 }}
-              className="w-8 h-0.5 bg-kabuki-red block mb-2 rounded-full"
-            ></m.span>
-            <m.span 
-              animate={isOpen ? { rotate: -45, y: -10 } : { rotate: 0, y: 0 }}
-              className="w-8 h-0.5 bg-white block rounded-full"
-            ></m.span>
+            <m.span animate={isOpen ? { rotate: 45, y: 8 } : { rotate: 0, y: 0 }} className="w-8 h-0.5 bg-white block mb-2 rounded-full" />
+            <m.span animate={isOpen ? { opacity: 0 } : { opacity: 1 }} className="w-8 h-0.5 bg-kabuki-red block mb-2 rounded-full" />
+            <m.span animate={isOpen ? { rotate: -45, y: -10 } : { rotate: 0, y: 0 }} className="w-8 h-0.5 bg-white block rounded-full" />
           </button>
         </div>
       </div>
@@ -211,7 +200,6 @@ export default function Navbar({ onOpenCart }: NavbarProps) {
             transition={{ duration: 0.4, ease: "easeInOut" }}
             className="fixed inset-0 bg-kabuki-black z-40 flex flex-col items-center justify-center md:hidden"
           >
-            {/* AFFICHAGE CAGNOTTE DANS LE MENU MOBILE */}
             {user && profile && (
               <div className="absolute top-24 w-full flex justify-center">
                 <div className="bg-neutral-900 border border-neutral-800 rounded-full px-6 py-2 flex items-center gap-3 shadow-lg">
@@ -237,25 +225,20 @@ export default function Navbar({ onOpenCart }: NavbarProps) {
                   </TransitionLink>
                 </li>
               ))}
-
               <li className="pt-8 flex flex-col items-center gap-6">
                   <TransitionLink 
                     href={`/${lang}/traiteur#devis`} 
-                    className="bg-kabuki-red text-white px-8 py-4 rounded-full font-bold text-lg uppercase tracking-wider hover:bg-red-700 transition shadow-xl"
+                    className="bg-kabuki-red text-white px-8 py-4 rounded-full font-bold text-lg uppercase tracking-wider shadow-xl"
                   >
                     {t?.hero?.btnTraiteur || "Traiteur"}
                   </TransitionLink>
-
-                  <div className="pt-4 border-t border-neutral-800 w-full flex justify-center">
-                    <LanguageSwitcher />
-                  </div>
+                  <LanguageSwitcher />
               </li>
             </ul>
           </m.div>
         )}
       </AnimatePresence>
 
-      {/* ✅ LA MODALE D'AUTHENTIFICATION (Qui sert de page de Login) */}
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
     </nav>
   );

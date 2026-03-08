@@ -6,10 +6,12 @@ import { X, Minus, Plus, Trash2, ShoppingBag, ArrowRight, ArrowLeft, Clock, Cale
 import { useCart } from "@/context/CartContext";
 import Image from "next/image";
 import { useTranslation } from "@/context/LanguageContext";
-// ✅ CORRECTION IMPORT : On utilise createClient
 import { createClient } from "@/utils/supabase/client"; 
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
+
+// ✅ IMPORT DU CONTEXTE UTILISATEUR
+import { useUser } from "@/context/UserContext";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
@@ -76,12 +78,15 @@ function StripeCheckoutForm({ total, onSuccess, onCancel, t }: StripeCheckoutFor
 }
 
 export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
-  // ✅ CORRECTION CLIENT : On initialise le client Supabase
   const supabase = createClient();
 
   const { items, updateQuantity, removeFromCart, totalPrice, clearCart, totalItems } = useCart();
   const { lang } = useTranslation();
   const t = cartTranslations[lang as keyof typeof cartTranslations] || cartTranslations.fr;
+
+  // ✅ RECUPERATION DU CONTEXTE UTILISATEUR ET ETAT DU CASHBACK
+  const { user, profile } = useUser(); 
+  const [useWallet, setUseWallet] = useState(false); 
 
   const [isCheckout, setIsCheckout] = useState(false);
   const [isPayment, setIsPayment] = useState(false);
@@ -96,7 +101,16 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   const [couponError, setCouponError] = useState("");
   const [isVerifyingCoupon, setIsVerifyingCoupon] = useState(false);
 
-  const [formData, setFormData] = useState({ name: "", phone: "", type: "Click & Collect", address: "", zip: "", floor: "", doorCode: "", comments: "" });
+  const [formData, setFormData] = useState({ 
+    name: profile?.full_name || "", // ✅ Pré-remplissage avec le profil
+    phone: profile?.phone || "",     // ✅ Pré-remplissage avec le profil
+    type: "Click & Collect", 
+    address: "", 
+    zip: "", 
+    floor: "", 
+    doorCode: "", 
+    comments: "" 
+  });
   
   const days = [];
   const start = new Date();
@@ -120,13 +134,22 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
     return slots;
   })() : [];
 
-  // ✅ LOGIQUE DE CALCUL DU PRIX FINAL
+  // ✅ LOGIQUE DE CALCUL DU PRIX FINAL AVEC CASHBACK
   const discountAmount = appliedCoupon 
     ? (appliedCoupon.discount_type === 'percentage' ? (totalPrice * appliedCoupon.discount_value / 100) : appliedCoupon.discount_value)
     : 0;
-  const finalPrice = Math.max(0, totalPrice - discountAmount);
+  
+  const priceAfterCoupon = Math.max(0, totalPrice - discountAmount);
+  
+  let walletUsed = 0;
+  if (useWallet && profile?.wallet_balance && profile.wallet_balance > 0) {
+    // On ne déduit pas plus que le prix de la commande
+    walletUsed = Math.min(priceAfterCoupon, profile.wallet_balance);
+  }
 
-  // ✅ SÉCURITÉ : Retirer le coupon si le total baisse sous le seuil min
+  const finalPrice = priceAfterCoupon - walletUsed;
+  const earnedCashback = finalPrice * 0.05; // 5% de la somme réellement payée
+
   useEffect(() => {
     if (appliedCoupon && totalPrice < appliedCoupon.min_order_amount) {
       setAppliedCoupon(null);
@@ -159,13 +182,12 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
     setIsVerifyingCoupon(false);
   };
 
-  // ✅ VÉRIFICATION GENÈVE (NPA commence par 12 et fait 4 chiffres)
   const isGenevaZip = (zip: string) => /^12\d{2}$/.test(zip.trim());
 
   const isDeliveryValid = formData.type !== "Livraison" || (
     totalPrice >= 25 && 
     formData.address.trim() !== "" && 
-    isGenevaZip(formData.zip) // On exige le NPA genevois
+    isGenevaZip(formData.zip) 
   );
   
   const isFormReady = selectedDate && selectedTime !== "" && formData.name.trim() !== "" && formData.phone.trim() !== "" && isDeliveryValid;
@@ -175,13 +197,13 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
     if (!isFormReady) return;
     setIsSubmitting(true);
     try {
-      // ✅ ON ENVOIE TOUT AU BACKEND
       const res = await fetch("/api/create-payment-intent", { 
         method: "POST", 
         headers: { "Content-Type": "application/json" }, 
         body: JSON.stringify({ 
-          amount: totalPrice, // On envoie le total brut, le serveur recalculera la réduc pour la sécurité
+          amount: totalPrice, 
           couponCode: appliedCoupon?.code,
+          useWallet: useWallet, // ✅ ENVOI DU CHOIX AU BACKEND
           items: items.map(i => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity })),
           customerName: formData.name,
           customerPhone: formData.phone,
@@ -199,7 +221,6 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
       if (payData.error) throw new Error(payData.error);
       if (!payData.clientSecret || !payData.orderId) throw new Error("Réponse API invalide");
       
-      // L'API nous retourne l'ID fraîchement créé et le secret Stripe
       setOrderId(payData.orderId);
       setClientSecret(payData.clientSecret);
       setIsPayment(true);
@@ -269,7 +290,6 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                           </div>
                         ))}
 
-                        {/* ✅ SECTION CODE PROMO */}
                         <div className="mt-6 p-4 bg-black/40 rounded-2xl border border-neutral-800">
                           <label htmlFor="coupon" className="text-[10px] font-bold text-gray-500 uppercase mb-2 flex items-center gap-2"><Tag size={12}/> {t.couponLabel}</label>
                           <div className="flex gap-2">
@@ -363,7 +383,6 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                                   />
                                 </div>
                                 
-                                {/* ⚠️ Alerte NPA invalide */}
                                 <AnimatePresence>
                                   {formData.type === "Livraison" && formData.zip.length === 4 && !isGenevaZip(formData.zip) && (
                                     <motion.p 
@@ -406,10 +425,38 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                           <span>-{discountAmount.toFixed(2)} CHF</span>
                         </div>
                       )}
-                      <div className="flex justify-between items-center">
+
+                      {/* ✅ NOUVEAU : AFFICHAGE DE LA CAGNOTTE */}
+                      {profile && profile.wallet_balance > 0 && (
+                        <div className="py-3 px-4 bg-black/40 border border-kabuki-red/30 rounded-xl my-3">
+                          <label className="flex items-center justify-between cursor-pointer">
+                            <div className="flex items-center gap-2">
+                              <input 
+                                type="checkbox" 
+                                checked={useWallet} 
+                                onChange={(e) => setUseWallet(e.target.checked)}
+                                className="accent-kabuki-red w-4 h-4 cursor-pointer"
+                              />
+                              <span className="text-xs font-bold text-white uppercase tracking-widest">
+                                Utiliser ma cagnotte ({Number(profile.wallet_balance).toFixed(2)} CHF)
+                              </span>
+                            </div>
+                            {useWallet && <span className="text-kabuki-red font-bold text-xs">-{walletUsed.toFixed(2)} CHF</span>}
+                          </label>
+                        </div>
+                      )}
+
+                      <div className="flex justify-between items-center pt-2 border-t border-neutral-800">
                         <span className="text-gray-400 text-xs font-bold uppercase tracking-widest">Total final</span>
                         <span className="text-2xl font-display font-bold text-white">{finalPrice.toFixed(2)} CHF</span>
                       </div>
+
+                      {/* ✅ NOUVEAU : APERÇU DU GAIN DE CASHBACK */}
+                      {user && finalPrice > 0 && (
+                        <p className="text-center text-[10px] text-green-500 font-bold uppercase tracking-widest mt-2">
+                          + {earnedCashback.toFixed(2)} CHF crédités sur votre cagnotte !
+                        </p>
+                      )}
                     </div>
                     
                     {!isCheckout ? (

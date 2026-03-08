@@ -29,8 +29,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const [supabase] = useState(() => createClient());
   const isInitialMount = useRef(true);
 
-  // ✅ fetchProfile renforcé avec gestion d'erreur et arrêt du loading
   const fetchProfile = useCallback(async (userId: string) => {
+    console.log("🔍 UserContext: Récupération du profil...");
     try {
       const { data, error } = await supabase
         .from("profiles")
@@ -39,30 +39,31 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         .single();
 
       if (error) throw error;
-      if (data) setProfile(data as UserProfile);
+      if (data) {
+        setProfile(data as UserProfile);
+        console.log("✅ UserContext: Profil chargé");
+      }
     } catch (err) {
-      console.error("UserContext: Erreur récupération profil", err);
+      console.error("❌ UserContext: Erreur profil", err);
+      setProfile(null);
     } finally {
-      setLoading(false); // ✅ Garantie que le spinner s'arrête
+      setLoading(false);
     }
   }, [supabase]);
 
-  const refreshProfile = async () => {
-    if (user) await fetchProfile(user.id);
-  };
-
-  // ✅ Déconnexion robuste : On nettoie le navigateur AVANT la promesse Supabase
   const signOut = async () => {
+    console.log("🚪 UserContext: Déconnexion en cours...");
     try {
       localStorage.clear();
       sessionStorage.clear();
       await supabase.auth.signOut();
     } catch (error) {
-      console.error("UserContext: Erreur pendant le signOut", error);
+      console.error("UserContext: Erreur signOut", error);
     } finally {
       setUser(null);
       setProfile(null);
       setLoading(false);
+      console.log("✅ UserContext: Déconnecté");
     }
   };
 
@@ -80,7 +81,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         } else {
           setLoading(false);
         }
-      } catch { // ✅ FIX : Parenthèses et 'err' supprimés car inutilisés
+      } catch {
         if (mounted) setLoading(false);
       }
     };
@@ -93,6 +94,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
+        console.log("🔔 UserContext: AuthStateChange -", event);
 
         if (event === "SIGNED_OUT") {
           setUser(null);
@@ -101,11 +103,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         } else if (session?.user) {
           setUser(session.user);
           await fetchProfile(session.user.id);
-        } else if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
-          if (session?.user) {
-            setUser(session.user);
-            await fetchProfile(session.user.id);
-          }
         } else {
           setLoading(false);
         }
@@ -119,7 +116,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }, [supabase, fetchProfile]);
 
   return (
-    <UserContext.Provider value={{ user, profile, loading, refreshProfile, signOut }}>
+    <UserContext.Provider value={{ user, profile, loading, refreshProfile: () => fetchProfile(user?.id || ""), signOut }}>
       {children}
     </UserContext.Provider>
   );
@@ -127,8 +124,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
 export const useUser = () => {
   const context = useContext(UserContext);
-  if (context === undefined) {
-    throw new Error("useUser must be used within a UserProvider");
-  }
+  if (context === undefined) throw new Error("useUser must be used within a UserProvider");
   return context;
 };

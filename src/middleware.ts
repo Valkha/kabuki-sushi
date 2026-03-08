@@ -7,7 +7,7 @@ const defaultLocale = 'fr'
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // 1. EXCLUSIONS (Fichiers, API, et surtout la route de déconnexion/callback)
+  // 1. EXCLUSIONS (Fichiers, API, auth)
   if (
     pathname.startsWith('/_next') || 
     pathname.startsWith('/api') || 
@@ -18,8 +18,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // 2. INITIALISATION SUPABASE (SANS REDIRECTION IMMÉDIATE)
-  let response = NextResponse.next()
+  // 2. INITIALISATION SUPABASE
+  let response = NextResponse.next({ request })
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -36,22 +36,31 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // On rafraîchit la session mais on ne bloque pas si elle échoue
+  // Rafraîchissement de la session
   const { data: { user } } = await supabase.auth.getUser()
 
-  // 3. LOGIQUE DE LANGUES
+  // 3. LOGIQUE DE LANGUES (i18n)
   const segments = pathname.split('/')
   const langInUrl = locales.find(l => segments[1] === l)
 
   if (!langInUrl && pathname !== '/login') {
     const newUrl = new URL(`/${defaultLocale}${pathname === '/' ? '' : pathname}`, request.url)
     const redirectResponse = NextResponse.redirect(newUrl)
-    // On transfère les cookies de session vers la redirection pour ne pas perdre l'auth
-    request.cookies.getAll().forEach(c => redirectResponse.cookies.set(c.name, c.value))
+    
+    // ✅ TRANSFERT RIGOUREUX DES COOKIES : Empêche la perte de session
+    request.cookies.getAll().forEach((c) => {
+      redirectResponse.cookies.set({
+        name: c.name,
+        value: c.value,
+        path: '/',
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+      })
+    })
     return redirectResponse
   }
 
-  // 4. PROTECTION ADMIN (Sécurité supplémentaire côté serveur)
+  // 4. PROTECTION ADMIN
   if (pathname.includes('/admin') && !user) {
     return NextResponse.redirect(new URL(`/${langInUrl || defaultLocale}/login`, request.url))
   }

@@ -39,6 +39,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     if (!silent) setLoading(true);
 
+    // 🛡️ COUPE-CIRCUIT : On force la fin du chargement après 5 secondes maximum
+    const fallbackTimeout = setTimeout(() => {
+      setLoading(false);
+    }, 5000);
+
     try {
       const { data, error } = await supabase
         .from("profiles")
@@ -47,6 +52,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         .single();
 
       if (error) {
+        // L'erreur PGRST116 est normale pour un nouveau compte Google (profil non créé)
         if (error.code !== 'PGRST116') throw error;
         setProfile(null);
       } else {
@@ -56,7 +62,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       console.error("UserContext Fetch Error:", err);
       setProfile(null);
     } finally {
-      setLoading(false);
+      clearTimeout(fallbackTimeout);
+      setLoading(false); // Le spinner est garanti de s'arrêter ici
     }
   }, [supabase]);
 
@@ -78,17 +85,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
-    let isFirstLoad = true; // ✅ Drapeau local pour gérer le silence au démarrage
+    let isFirstLoad = true;
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
-        
-        console.log(`[UserContext] Auth Event: ${event}`);
 
         if (session?.user) {
           setUser(session.user);
-          // ✅ Silent refresh si ce n'est plus le chargement initial du composant
           await fetchProfile(session.user.id, !isFirstLoad);
           isFirstLoad = false;
         } else {
@@ -103,7 +107,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       mounted = false;
       subscription.unsubscribe();
     };
-    // 🛡️ 'profile' est délibérément exclu des dépendances pour casser la boucle infinie
   }, [supabase, fetchProfile]);
 
   return (

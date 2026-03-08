@@ -33,7 +33,7 @@ export default function SettingsPage() {
   }, [profile]);
 
   const handleUpdate = async () => {
-    // On force l'utilisation de l'ID de l'utilisateur authentifié
+    // ✅ Utilisation de l'ID authentifié validé par l'audit (fef16323...)
     const targetId = user?.id; 
     setErrorMsg(null);
 
@@ -45,15 +45,15 @@ export default function SettingsPage() {
     setIsUpdating(true);
 
     try {
-      // Vérification de session active pour éviter le gel silencieux de la librairie
+      // Vérification de session pour éviter le gel silencieux
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Votre session a expiré.");
 
-      // ✅ UPSERT : Crée ou écrase la ligne basée sur l'ID de l'utilisateur
+      // ✅ UPSERT : Crée la ligne si profile_id était null, sinon la met à jour
       const { error } = await supabase
         .from("profiles")
         .upsert({
-          id: targetId, // Clé primaire pour la correspondance
+          id: targetId,
           full_name: fullName,
           phone: phone,
           address: address,
@@ -66,9 +66,7 @@ export default function SettingsPage() {
 
       if (error) throw error;
 
-      // On force le re-téléchargement des données dans le contexte global
       await refreshProfile();
-      
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (err) {

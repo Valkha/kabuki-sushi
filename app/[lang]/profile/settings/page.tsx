@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useUser } from "@/context/UserContext";
 import { createClient } from "@/utils/supabase/client";
-import { ArrowLeft, CheckCircle, AlertTriangle, Save, Loader2 } from "lucide-react";
+import { ArrowLeft, CheckCircle, AlertTriangle, Save, Loader2, LogOut } from "lucide-react";
 import { useParams } from "next/navigation";
 import TransitionLink from "@/components/TransitionLink";
 
@@ -44,6 +44,19 @@ export default function SettingsPage() {
     }
   }, [profile]);
 
+  // 🧹 Fonction de Hard Reset pour casser le Deadlock des cookies
+  const handleResetSession = () => {
+    // 1. Destruction totale des cookies Supabase
+    document.cookie.split(";").forEach((c) => {
+      document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+    });
+    // 2. Nettoyage du cache local
+    localStorage.clear();
+    sessionStorage.clear();
+    // 3. Redirection forcée vers l'accueil pour recréer une session saine
+    window.location.href = `/${lang}`;
+  };
+
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault(); 
     
@@ -58,13 +71,11 @@ export default function SettingsPage() {
     setIsUpdating(true);
     setErrorMsg(null);
 
-    // 🕒 Timeout spécial Deadlock Navigateur
     const timeout = new Promise<UpsertResponse>((_, reject) => 
-      setTimeout(() => reject(new Error("L'authentification a figé le navigateur. Veuillez vider le cache (Local Storage) et réessayer.")), 8000)
+      setTimeout(() => reject(new Error("L'authentification a figé le navigateur. Les cookies sont désynchronisés.")), 8000)
     );
 
     try {
-      // ✅ Retour à la méthode officielle Supabase (maintenant que le cadenas est géré)
       const upsertTask = supabase
         .from("profiles")
         .upsert({
@@ -129,8 +140,20 @@ export default function SettingsPage() {
             </div>
 
             {errorMsg && (
-              <div className="bg-red-900/20 border border-red-500/50 text-red-500 p-4 rounded-xl flex items-center gap-2 text-xs font-bold uppercase animate-pulse">
-                <AlertTriangle size={16} className="shrink-0" /> <span className="flex-1">{errorMsg}</span>
+              <div className="bg-red-900/20 border border-red-500/50 text-red-500 p-4 rounded-xl flex flex-col gap-3 text-xs font-bold uppercase">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle size={16} className="shrink-0" /> <span className="flex-1 break-words">{errorMsg}</span>
+                </div>
+                {/* 🧯 Bouton de secours pour réinitialiser les cookies bloquants */}
+                {errorMsg.includes("figé") && (
+                  <button 
+                    type="button" 
+                    onClick={handleResetSession} 
+                    className="bg-red-600 hover:bg-red-500 text-white py-3 rounded-lg flex items-center justify-center gap-2 transition-colors mt-2"
+                  >
+                    <LogOut size={16} /> Réparer ma session (Déconnexion)
+                  </button>
+                )}
               </div>
             )}
 

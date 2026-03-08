@@ -4,7 +4,6 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Mail, Lock, User as UserIcon, Loader2, ArrowRight } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
-// ✅ Import du composant Image de Next.js
 import Image from "next/image";
 
 interface AuthModalProps {
@@ -29,10 +28,15 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     setLoading(true);
     setError(null);
     try {
+      // ✅ CORRECTION DE L'URL DE REDIRECTION
+      // On s'assure d'utiliser l'URL exacte attendue par le Route Handler
+      // et autorisée dans les paramètres de Supabase (Site URL / Redirect URIs)
+      const redirectUrl = new URL('/auth/callback', window.location.origin);
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: redirectUrl.toString(),
         },
       });
       if (error) throw error;
@@ -197,7 +201,6 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 </button>
               </form>
 
-              {/* SECTION : GOOGLE OAUTH CORRIGÉE */}
               <div className="mt-8 space-y-4">
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
@@ -214,7 +217,6 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   disabled={loading}
                   className="w-full flex items-center justify-center gap-3 bg-white text-black py-4 rounded-xl font-bold uppercase tracking-widest hover:bg-neutral-200 transition-all shadow-lg text-[11px] disabled:opacity-50"
                 >
-                  {/* ✅ Remplacement de <img> par <Image /> */}
                   <Image 
                     src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" 
                     width={16} 

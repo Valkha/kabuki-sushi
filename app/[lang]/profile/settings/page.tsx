@@ -33,7 +33,7 @@ export default function SettingsPage() {
   }, [profile]);
 
   const handleUpdate = async () => {
-    // On utilise l'ID direct de l'user authentifié pour garantir la correspondance RLS
+    // On force l'utilisation de l'ID de l'utilisateur authentifié
     const targetId = user?.id; 
     setErrorMsg(null);
 
@@ -45,15 +45,15 @@ export default function SettingsPage() {
     setIsUpdating(true);
 
     try {
-      // Vérification de session active
+      // Vérification de session active pour éviter le gel silencieux de la librairie
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Votre session a expiré.");
 
-      // ✅ UPSERT : Crée ou met à jour la ligne basée sur l'ID
+      // ✅ UPSERT : Crée ou écrase la ligne basée sur l'ID de l'utilisateur
       const { error } = await supabase
         .from("profiles")
         .upsert({
-          id: targetId, // Indispensable pour l'upsert
+          id: targetId, // Clé primaire pour la correspondance
           full_name: fullName,
           phone: phone,
           address: address,
@@ -66,11 +66,13 @@ export default function SettingsPage() {
 
       if (error) throw error;
 
+      // On force le re-téléchargement des données dans le contexte global
       await refreshProfile();
+      
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (err) {
-      console.error("Erreur UPSERT:", err);
+      console.error("Erreur de sauvegarde (UPSERT):", err);
       setErrorMsg(err instanceof Error ? err.message : "Erreur de base de données.");
     } finally {
       setIsUpdating(false);
@@ -123,7 +125,7 @@ export default function SettingsPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Adresse</label>
+                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Adresse de livraison</label>
                 <div className="relative">
                   <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
                   <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} className="w-full bg-black border border-neutral-800 rounded-xl py-4 pl-12 pr-4 text-white focus:border-kabuki-red outline-none transition-colors" />
@@ -147,7 +149,7 @@ export default function SettingsPage() {
                 type="button" 
                 onClick={handleUpdate}
                 disabled={isUpdating} 
-                className="w-full bg-kabuki-red text-white py-4 rounded-xl font-bold uppercase tracking-[0.2em] hover:bg-white hover:text-black transition-all flex items-center justify-center gap-2 disabled:opacity-50 mt-4"
+                className="w-full bg-kabuki-red text-white py-4 rounded-xl font-bold uppercase tracking-[0.2em] hover:bg-white hover:text-black transition-all flex items-center justify-center gap-2 disabled:opacity-50 mt-4 shadow-lg shadow-red-900/20"
               >
                 {isUpdating ? <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <><Save size={18} /> Sauvegarder</>}
               </button>

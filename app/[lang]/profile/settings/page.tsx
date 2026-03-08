@@ -33,7 +33,6 @@ export default function SettingsPage() {
   }, [profile]);
 
   const handleUpdate = async () => {
-    // On utilise l'ID du profil ou de l'user pour être certain d'avoir la cible
     const targetId = profile?.id || user?.id;
     setErrorMsg(null);
 
@@ -59,13 +58,11 @@ export default function SettingsPage() {
 
       if (error) throw error;
 
-      // On attend que le profil soit rafraîchi dans le contexte
       await refreshProfile();
-      
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (err) {
-      console.error("💥 Erreur de sauvegarde:", err);
+      console.error("Erreur de sauvegarde:", err);
       const errorMessage = err instanceof Error ? err.message : "Erreur de permissions Supabase.";
       setErrorMsg(errorMessage);
     } finally {

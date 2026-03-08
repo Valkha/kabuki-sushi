@@ -7,7 +7,6 @@ const defaultLocale = 'fr'
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // 1. EXCLUSIONS (Fichiers, API, auth)
   if (
     pathname.startsWith('/_next') || 
     pathname.startsWith('/api') || 
@@ -18,7 +17,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // 2. INITIALISATION SUPABASE
+  // Initialisation de la réponse
   let response = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -36,10 +35,9 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Rafraîchissement de la session
+  // Rafraîchissement crucial de la session
   const { data: { user } } = await supabase.auth.getUser()
 
-  // 3. LOGIQUE DE LANGUES (i18n)
   const segments = pathname.split('/')
   const langInUrl = locales.find(l => segments[1] === l)
 
@@ -47,20 +45,14 @@ export async function middleware(request: NextRequest) {
     const newUrl = new URL(`/${defaultLocale}${pathname === '/' ? '' : pathname}`, request.url)
     const redirectResponse = NextResponse.redirect(newUrl)
     
-    // ✅ TRANSFERT RIGOUREUX DES COOKIES : Empêche la perte de session
-    request.cookies.getAll().forEach((c) => {
-      redirectResponse.cookies.set({
-        name: c.name,
-        value: c.value,
-        path: '/',
-        sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production',
-      })
+    // Copie de TOUS les cookies (y compris ceux de session fraîchement mis à jour)
+    response.cookies.getAll().forEach((c) => {
+      redirectResponse.cookies.set(c)
     })
+    
     return redirectResponse
   }
 
-  // 4. PROTECTION ADMIN
   if (pathname.includes('/admin') && !user) {
     return NextResponse.redirect(new URL(`/${langInUrl || defaultLocale}/login`, request.url))
   }

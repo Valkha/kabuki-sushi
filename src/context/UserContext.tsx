@@ -31,7 +31,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [supabase] = useState(() => createClient());
 
-  const fetchProfile = useCallback(async (userId: string) => {
+  const fetchProfile = useCallback(async (userId: string, silent = false) => {
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+
+    if (!silent) setLoading(true);
+
     try {
       const { data, error } = await supabase
         .from("profiles")
@@ -39,19 +46,22 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         .eq("id", userId)
         .single();
 
-      if (!error && data) {
+      if (error) {
+        if (error.code !== 'PGRST116') throw error;
+        setProfile(null);
+      } else {
         setProfile(data as UserProfile);
       }
     } catch (err) {
-      console.error("UserContext Fetch Error:", err);
+      console.error("UserContext Error:", err);
+      setProfile(null);
+    } finally {
+      setLoading(false);
     }
   }, [supabase]);
 
   const refreshProfile = async () => {
-    if (user?.id) {
-      // ✅ On rafraîchit sans JAMAIS toucher à 'loading'
-      await fetchProfile(user.id);
-    }
+    if (user?.id) await fetchProfile(user.id, true);
   };
 
   const signOut = async () => {
@@ -61,44 +71,36 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       setProfile(null);
     } catch (err) {
       console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
     let mounted = true;
 
-    // 1. Initialisation unique
-    const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!mounted) return;
+    // Utilisation de onAuthStateChange comme source unique pour l'init et le suivi
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (!mounted) return;
 
-      if (session?.user) {
-        setUser(session.user);
-        await fetchProfile(session.user.id);
+        if (session?.user) {
+          setUser(session.user);
+          // On charge le profil. Le loading passera à false à la fin de fetchProfile
+          await fetchProfile(session.user.id, profile !== null);
+        } else {
+          setUser(null);
+          setProfile(null);
+          setLoading(false);
+        }
       }
-      setLoading(false); // ✅ Une seule fois ici
-    };
-
-    init();
-
-    // 2. Écoute des changements (SANS toucher au loading global)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!mounted) return;
-      if (session?.user) {
-        setUser(session.user);
-        await fetchProfile(session.user.id);
-      } else {
-        setUser(null);
-        setProfile(null);
-      }
-      setLoading(false); 
-    });
+    );
 
     return () => {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [supabase, fetchProfile]);
+  }, [supabase, fetchProfile, profile]);
 
   return (
     <UserContext.Provider value={{ user, profile, loading, refreshProfile, signOut }}>
@@ -109,6 +111,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
 export const useUser = () => {
   const context = useContext(UserContext);
-  if (!context) throw new Error("useUser must be used within UserProvider");
+  if (context === undefined) throw new Error("useUser must be used within a UserProvider");
   return context;
 };

@@ -3,6 +3,12 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   async headers() {
+    // 🛡️ DÉSACTIVATION DU CSP EN DÉVELOPPEMENT POUR EMPÊCHER LES BOUCLES (ERR_ABORTED / EVAL)
+    if (process.env.NODE_ENV === 'development') {
+      return [];
+    }
+
+    // 🔒 CES RÈGLES NE S'APPLIQUERONT QU'EN PRODUCTION (SUR VERCEL)
     return [
       {
         source: '/(.*)',

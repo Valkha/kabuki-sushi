@@ -33,7 +33,8 @@ export default function SettingsPage() {
   }, [profile]);
 
   const handleUpdate = async () => {
-    const targetId = profile?.id || user?.id;
+    // On utilise l'ID direct de l'user authentifié pour garantir la correspondance RLS
+    const targetId = user?.id; 
     setErrorMsg(null);
 
     if (!targetId) {
@@ -44,21 +45,24 @@ export default function SettingsPage() {
     setIsUpdating(true);
 
     try {
-      // Vérification de session pour éviter le blocage silencieux
+      // Vérification de session active
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Votre session a expiré.");
 
+      // ✅ UPSERT : Crée ou met à jour la ligne basée sur l'ID
       const { error } = await supabase
         .from("profiles")
-        .update({
+        .upsert({
+          id: targetId, // Indispensable pour l'upsert
           full_name: fullName,
           phone: phone,
           address: address,
           zip_code: zipCode,
           city: city,
           updated_at: new Date().toISOString(),
-        })
-        .eq("id", targetId);
+        }, {
+          onConflict: 'id'
+        });
 
       if (error) throw error;
 
@@ -66,8 +70,8 @@ export default function SettingsPage() {
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (err) {
-      console.error("Erreur de sauvegarde:", err);
-      setErrorMsg(err instanceof Error ? err.message : "Erreur de connexion.");
+      console.error("Erreur UPSERT:", err);
+      setErrorMsg(err instanceof Error ? err.message : "Erreur de base de données.");
     } finally {
       setIsUpdating(false);
     }

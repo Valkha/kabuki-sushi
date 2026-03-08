@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useUser } from "@/context/UserContext";
 import { createClient } from "@/utils/supabase/client";
 import { ArrowLeft, CheckCircle, AlertTriangle, Save, Loader2 } from "lucide-react";
@@ -26,6 +26,9 @@ export default function SettingsPage() {
   
   const [supabase] = useState(() => createClient());
 
+  // 🛡️ VERROU SYNCHRONE : Empêche les doubles déclenchements même si le state n'a pas encore mis à jour l'UI
+  const isProcessing = useRef(false);
+
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
@@ -48,15 +51,16 @@ export default function SettingsPage() {
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault(); 
     
-    // 🛡️ Empêche les requêtes simultanées qui causent les verrous SQL
-    if (!user?.id || loading || isUpdating) return;
+    // 🛡️ Sécurité renforcée : On vérifie le ref et les états de chargement
+    if (isProcessing.current || !user?.id || loading || isUpdating) return;
     
+    isProcessing.current = true;
     setIsUpdating(true);
     setErrorMsg(null);
 
-    // 🕒 Timeout étendu à 10s car la DB est ralentie par les politiques RLS
+    // 🕒 Timeout à 8s : Si la DB est lockée, on n'attend pas indéfiniment
     const timeout = new Promise<UpsertResponse>((_, reject) => 
-      setTimeout(() => reject(new Error("La base de données est trop lente à répondre (Timeout 10s).")), 10000)
+      setTimeout(() => reject(new Error("La base de données est trop lente. Veuillez rafraîchir et réessayer.")), 8000)
     );
 
     try {
@@ -72,7 +76,6 @@ export default function SettingsPage() {
           updated_at: new Date().toISOString(),
         }, { onConflict: 'id' });
 
-      // On attend le résultat de Supabase ou le timeout
       const result = await Promise.race([upsertTask, timeout]) as UpsertResponse;
 
       if (result.error) {
@@ -87,6 +90,8 @@ export default function SettingsPage() {
       console.error("[SETTINGS_ERROR]:", errorMessage);
       setErrorMsg(errorMessage);
     } finally {
+      // 🔓 Libération des verrous
+      isProcessing.current = false;
       setIsUpdating(false);
     }
   };
@@ -131,7 +136,8 @@ export default function SettingsPage() {
 
             <button 
               type="submit"
-              disabled={isUpdating || loading || !user} 
+              // ✅ Sécurité : On bloque tant que le profil n'est pas synchronisé
+              disabled={isUpdating || loading || !user || !profile} 
               className="w-full bg-kabuki-red text-white py-4 rounded-xl font-bold uppercase tracking-[0.2em] hover:bg-white hover:text-black transition-all flex items-center justify-center gap-3 disabled:opacity-50"
             >
               {isUpdating ? <><Loader2 size={18} className="animate-spin" /> Traitement...</> : <><Save size={18} /> Sauvegarder</>}

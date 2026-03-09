@@ -46,7 +46,6 @@ export default function SettingsPage() {
     setErrorMsg(null);
 
     try {
-      // ⚡ BYPASS TOTAL : On n'utilise plus Supabase ici, on appelle l'API !
       const response = await fetch("/api/update-profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -59,14 +58,24 @@ export default function SettingsPage() {
         throw new Error(data.error || "Échec de la sauvegarde réseau.");
       }
 
-      await refreshProfile();
+      // ✅ On affiche le succès immédiatement sans attendre le contexte potentiellement figé
       setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 3000);
+      
+      // ✅ On lance la mise à jour du contexte en arrière-plan sans le mot-clé 'await'
+      refreshProfile().catch(() => {});
+
+      // ✅ Après 2 secondes, on recharge la page pour forcer la synchronisation avec les données serveur
+      setTimeout(() => {
+        setShowSuccess(false);
+        window.location.reload();
+      }, 2000);
+
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Erreur inconnue";
       console.error("[SETTINGS_ERROR]:", errorMessage);
       setErrorMsg(errorMessage);
     } finally {
+      // On s'assure de libérer le bouton même si on attend le rechargement de la page
       isProcessing.current = false;
       setIsUpdating(false);
     }

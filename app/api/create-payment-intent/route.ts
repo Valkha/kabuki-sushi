@@ -1,14 +1,33 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { createClient as createSupabaseAdmin } from "@supabase/supabase-js";
-// ✅ IMPORT DU CLIENT SSR POUR LIRE LE COOKIE DE SESSION SÉCURISÉ
 import { createClient } from "@/utils/supabase/server"; 
+
+interface CartItem {
+  menuItemId: string;
+  quantity: number;
+  name?: string;
+}
+
+interface RequestBody {
+  items: CartItem[];
+  couponCode?: string;
+  useWallet?: boolean;
+  customerName: string;
+  customerPhone: string;
+  pickupDate: string;
+  pickupTime: string;
+  orderType: "Livraison" | "À emporter";
+  deliveryAddress?: string;
+  deliveryZip?: string | number;
+  comments?: string;
+  lang?: string; // On le garde dans l'interface car le front l'envoie
+}
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2023-10-16" as Stripe.LatestApiVersion,
 });
 
-// ✅ Client service_role — bypass RLS pour les opérations serveur
 const supabaseAdmin = createSupabaseAdmin(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!, 
@@ -17,20 +36,43 @@ const supabaseAdmin = createSupabaseAdmin(
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    const body = await request.json() as RequestBody;
 
+    // ✅ CORRECTION : 'lang' est retiré ici pour supprimer l'erreur de variable inutilisée
     const { 
-        amount, couponCode, useWallet, items, customerName, customerPhone, 
+        couponCode, useWallet, items, customerName, customerPhone, 
         pickupDate, pickupTime, orderType, deliveryAddress, deliveryZip, comments 
     } = body;
 
-    // ✅ 0. RÉCUPÉRATION SÉCURISÉE DE L'UTILISATEUR
     const supabaseServer = await createClient();
     const { data: { user } } = await supabaseServer.auth.getUser();
 
-    // --- 1.5 SÉCURITÉ : Vérification de la zone de livraison (Genève uniquement) ---
+    if (!Array.isArray(items) || items.length === 0) {
+      return NextResponse.json({ error: "Le panier est vide." }, { status: 400 });
+    }
+
+    const menuItemIds = items.map((i) => i.menuItemId);
+    
+    const { data: dbItems, error: dbError } = await supabaseAdmin
+      .from("menu_items")
+      .select("id, price_cents, is_available")
+      .in("id", menuItemIds);
+
+    if (dbError || !dbItems) {
+      throw new Error("Impossible de vérifier les prix en base de données.");
+    }
+
+    let serverBaseAmount = 0;
+    for (const clientItem of items) {
+      const dbItem = dbItems.find(d => d.id === clientItem.menuItemId);
+      if (!dbItem || !dbItem.is_available) {
+        return NextResponse.json({ error: "Un article n'est plus disponible." }, { status: 400 });
+      }
+      serverBaseAmount += (dbItem.price_cents * (clientItem.quantity || 1)) / 100;
+    }
+
     if (orderType === "Livraison") {
-      const isGenevaZip = /^12\d{2}$/.test(String(deliveryZip).trim());
+      const isGenevaZip = /^12\d{2}$/.test(String(deliveryZip || "").trim());
       if (!isGenevaZip) {
         return NextResponse.json(
           { error: "La livraison est restreinte au canton de Genève (NPA 12xx)." }, 
@@ -39,37 +81,34 @@ export async function POST(request: Request) {
       }
     }
 
-    let finalAmount = amount;
+    let finalAmount = serverBaseAmount;
     let discountApplied = 0;
 
-    // --- 1. LOGIQUE DE COUPON CÔTÉ SERVEUR ---
     if (couponCode) {
-      const { data: coupon, error: couponError } = await supabaseAdmin
+      const { data: coupon } = await supabaseAdmin
         .from("coupons")
         .select("*")
-        .eq("code", (couponCode as string).toUpperCase().trim())
+        .eq("code", couponCode.toUpperCase().trim())
         .eq("is_active", true)
         .single();
 
-      if (!couponError && coupon) {
+      if (coupon) {
         const now = new Date();
         const isExpired = coupon.expiration_date && new Date(coupon.expiration_date) < now;
 
-        if (!isExpired && amount >= (coupon.min_order_amount || 0)) {
+        if (!isExpired && serverBaseAmount >= (coupon.min_order_amount || 0)) {
           if (coupon.discount_type === "percentage") {
-            discountApplied = (amount * coupon.discount_value) / 100;
+            discountApplied = (serverBaseAmount * coupon.discount_value) / 100;
           } else {
             discountApplied = coupon.discount_value;
           }
-          finalAmount = Math.max(0, amount - discountApplied);
+          finalAmount = Math.max(0, serverBaseAmount - discountApplied);
         }
       }
     }
 
-    // --- 2. LOGIQUE DE CAGNOTTE (WALLET) ---
     let walletUsed = 0;
     if (useWallet && user) {
-      // On récupère le solde réel depuis la base de données (sécurité anti-triche)
       const { data: profile } = await supabaseAdmin
         .from("profiles")
         .select("wallet_balance")
@@ -77,13 +116,10 @@ export async function POST(request: Request) {
         .single();
 
       if (profile && profile.wallet_balance > 0) {
-        // Règle Stripe : Un paiement CB doit être de minimum 0.50 CHF
-        // On empêche la cagnotte de descendre le total en dessous de cette limite
         const maxWalletAllowed = Math.max(0, finalAmount - 0.50);
         walletUsed = Math.min(maxWalletAllowed, Number(profile.wallet_balance));
         finalAmount = finalAmount - walletUsed;
 
-        // ✅ DÉDUCTION IMMÉDIATE DANS SUPABASE (Via la table de transactions)
         if (walletUsed > 0) {
           await supabaseAdmin.from("loyalty_transactions").insert([{
             user_id: user.id,
@@ -97,19 +133,17 @@ export async function POST(request: Request) {
     const amountInCents = Math.round(finalAmount * 100);
 
     if (amountInCents < 50) {
-      return NextResponse.json({ error: "Montant trop faible pour Stripe (Minimum 0.50 CHF)." }, { status: 400 });
+      return NextResponse.json({ error: "Montant trop faible (Min 0.50 CHF)." }, { status: 400 });
     }
 
-    // On prépare une note propre pour la cuisine
     const finalComments = walletUsed > 0 
-      ? `[Cagnotte client déduite: -${walletUsed.toFixed(2)} CHF]\n${comments || ""}` 
+      ? `[Cagnotte déduite: -${walletUsed.toFixed(2)} CHF]\n${comments || ""}` 
       : comments;
 
-    // --- 3. CRÉATION DE LA COMMANDE DANS SUPABASE ---
     const { data: orderData, error: orderError } = await supabaseAdmin
       .from('orders')
       .insert([{
-        user_id: user?.id || null, // ✅ On lie enfin la commande au compte client !
+        user_id: user?.id || null,
         customer_name: customerName, 
         customer_phone: customerPhone, 
         pickup_date: pickupDate,
@@ -128,34 +162,31 @@ export async function POST(request: Request) {
       .single();
 
     if (orderError || !orderData) {
-      console.error("❌ Erreur Supabase INSERT order:", orderError?.message);
       return NextResponse.json({ error: "Erreur création commande" }, { status: 500 });
     }
 
-    const newOrderId = orderData.id;
-
-    // --- 4. CRÉATION DU PAYMENT INTENT STRIPE ---
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amountInCents,
       currency: "chf",
       automatic_payment_methods: { enabled: true },
       metadata: {
-        orderId: String(newOrderId),
+        orderId: String(orderData.id),
         userId: user?.id || "guest",
-        couponUsed: (couponCode as string) || "none",
+        couponUsed: couponCode || "none",
         discountAmount: discountApplied.toFixed(2),
-        walletUsed: walletUsed.toFixed(2), // Trace pour la compta
-        originalAmount: amount.toFixed(2),
+        walletUsed: walletUsed.toFixed(2),
+        originalAmount: serverBaseAmount.toFixed(2),
       },
     });
 
     return NextResponse.json({
       clientSecret: paymentIntent.client_secret,
-      orderId: newOrderId
+      orderId: orderData.id
     });
 
   } catch (error) {
-    console.error("❌ Erreur API Stripe/Supabase:", (error as Error).message);
+    const errorMessage = error instanceof Error ? error.message : "Erreur serveur";
+    console.error("❌ Erreur API Stripe/Supabase:", errorMessage);
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
   }
 }

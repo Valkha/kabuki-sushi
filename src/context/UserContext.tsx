@@ -44,14 +44,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }, 5000);
 
     try {
-      // ✅ LA CLÉ EST ICI : 'Cache-Control': 'no-cache'
-      // Cela interdit au navigateur et au SDK d'utiliser une ancienne copie en mémoire
+      // ✅ CORRECTION : Retrait du .setHeader() qui faisait planter la requête
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", userId)
-        .single()
-        .setHeader('Cache-Control', 'no-cache, no-store, must-revalidate'); 
+        .single();
 
       if (error) {
         if (error.code !== 'PGRST116') throw error;
@@ -60,7 +58,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         setProfile(data as UserProfile);
       }
     } catch (err) {
-      console.error("UserContext Fetch Error:", err);
+      // ✅ Si une erreur survient, on l'affiche clairement dans la console
+      console.error("[UserContext Fetch Error]:", err);
       setProfile(null);
     } finally {
       clearTimeout(fallbackTimeout);

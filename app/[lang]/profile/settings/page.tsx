@@ -58,24 +58,30 @@ export default function SettingsPage() {
         throw new Error(data.error || "Échec de la sauvegarde réseau.");
       }
 
-      // ✅ On affiche le succès immédiatement sans attendre le contexte potentiellement figé
+      // ✅ VICTOIRE : On met à jour les champs visuels IMMÉDIATEMENT avec la réponse du serveur
+      if (data.profile) {
+        setFullName(data.profile.full_name || "");
+        setPhone(data.profile.phone || "");
+        setAddress(data.profile.address || "");
+        setZipCode(data.profile.zip_code || "");
+        setCity(data.profile.city || "");
+      }
+
       setShowSuccess(true);
       
-      // ✅ On lance la mise à jour du contexte en arrière-plan sans le mot-clé 'await'
+      // On met à jour le contexte en arrière-plan discrètement
       refreshProfile().catch(() => {});
 
-      // ✅ Après 2 secondes, on recharge la page pour forcer la synchronisation avec les données serveur
+      // ✅ Fini le window.location.reload() qui vidait les champs !
       setTimeout(() => {
         setShowSuccess(false);
-        window.location.reload();
-      }, 2000);
+      }, 3000);
 
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Erreur inconnue";
       console.error("[SETTINGS_ERROR]:", errorMessage);
       setErrorMsg(errorMessage);
     } finally {
-      // On s'assure de libérer le bouton même si on attend le rechargement de la page
       isProcessing.current = false;
       setIsUpdating(false);
     }

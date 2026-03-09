@@ -2,26 +2,14 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useUser } from "@/context/UserContext";
-import { createClient } from "@/utils/supabase/client";
-import { ArrowLeft, CheckCircle, AlertTriangle, Save, Loader2, LogOut } from "lucide-react";
+import { ArrowLeft, CheckCircle, AlertTriangle, Save, Loader2 } from "lucide-react";
 import { useParams } from "next/navigation";
 import TransitionLink from "@/components/TransitionLink";
-
-interface SupabaseError {
-  message: string;
-  code?: string;
-}
-
-interface UpsertResponse {
-  error: SupabaseError | null;
-}
 
 export default function SettingsPage() {
   const { user, profile, refreshProfile } = useUser();
   const params = useParams();
-  
   const lang = typeof params?.lang === 'string' ? params.lang : 'fr';
-  const [supabase] = useState(() => createClient());
 
   const isProcessing = useRef(false);
 
@@ -44,26 +32,12 @@ export default function SettingsPage() {
     }
   }, [profile]);
 
-  // 🧹 Fonction de Hard Reset pour casser le Deadlock des cookies
-  const handleResetSession = () => {
-    // 1. Destruction totale des cookies Supabase
-    document.cookie.split(";").forEach((c) => {
-      document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
-    });
-    // 2. Nettoyage du cache local
-    localStorage.clear();
-    sessionStorage.clear();
-    // 3. Redirection forcée vers l'accueil pour recréer une session saine
-    window.location.href = `/${lang}`;
-  };
-
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault(); 
     
     if (isProcessing.current || isUpdating) return;
-
-    if (!user || !user.id) {
-      setErrorMsg("Session introuvable. Veuillez vous reconnecter.");
+    if (!user) {
+      setErrorMsg("Session introuvable. Veuillez recharger la page.");
       return;
     }
     
@@ -71,34 +45,25 @@ export default function SettingsPage() {
     setIsUpdating(true);
     setErrorMsg(null);
 
-    const timeout = new Promise<UpsertResponse>((_, reject) => 
-      setTimeout(() => reject(new Error("L'authentification a figé le navigateur. Les cookies sont désynchronisés.")), 8000)
-    );
-
     try {
-      const upsertTask = supabase
-        .from("profiles")
-        .upsert({
-          id: user.id,
-          full_name: fullName,
-          phone: phone,
-          address: address,
-          zip_code: zipCode,
-          city: city,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'id' });
+      // ⚡ BYPASS TOTAL : On n'utilise plus Supabase ici, on appelle l'API !
+      const response = await fetch("/api/update-profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fullName, phone, address, zipCode, city }),
+      });
 
-      const result = await Promise.race([upsertTask, timeout]) as UpsertResponse;
+      const data = await response.json();
 
-      if (result.error) {
-        throw new Error(result.error.message);
+      if (!response.ok) {
+        throw new Error(data.error || "Échec de la sauvegarde réseau.");
       }
 
       await refreshProfile();
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : "Une erreur inconnue est survenue";
+      const errorMessage = err instanceof Error ? err.message : "Erreur inconnue";
       console.error("[SETTINGS_ERROR]:", errorMessage);
       setErrorMsg(errorMessage);
     } finally {
@@ -140,20 +105,8 @@ export default function SettingsPage() {
             </div>
 
             {errorMsg && (
-              <div className="bg-red-900/20 border border-red-500/50 text-red-500 p-4 rounded-xl flex flex-col gap-3 text-xs font-bold uppercase">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle size={16} className="shrink-0" /> <span className="flex-1 break-words">{errorMsg}</span>
-                </div>
-                {/* 🧯 Bouton de secours pour réinitialiser les cookies bloquants */}
-                {errorMsg.includes("figé") && (
-                  <button 
-                    type="button" 
-                    onClick={handleResetSession} 
-                    className="bg-red-600 hover:bg-red-500 text-white py-3 rounded-lg flex items-center justify-center gap-2 transition-colors mt-2"
-                  >
-                    <LogOut size={16} /> Réparer ma session (Déconnexion)
-                  </button>
-                )}
+              <div className="bg-red-900/20 border border-red-500/50 text-red-500 p-4 rounded-xl flex items-center gap-2 text-xs font-bold uppercase animate-pulse">
+                <AlertTriangle size={16} className="shrink-0" /> <span className="flex-1 break-words">{errorMsg}</span>
               </div>
             )}
 
